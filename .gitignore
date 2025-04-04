@@ -55,3 +55,4 @@ android/app/google-services.json
 android/app/build
 *.bin
 *.dex
+lib/firebase_options.dart
