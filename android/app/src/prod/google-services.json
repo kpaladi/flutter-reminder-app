@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "26480573501",
+    "project_id": "reminderapp-cff3b",
+    "storage_bucket": "reminderapp-cff3b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:26480573501:android:66ac4dc6f35799af773e54",
+        "android_client_info": {
+          "package_name": "com.example.reminder_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0UXmnjBhEiP0tgeHeJ7Up9ymaeyMb3bs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:26480573501:android:19bd32c94c820133773e54",
+        "android_client_info": {
+          "package_name": "com.example.reminder_app.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0UXmnjBhEiP0tgeHeJ7Up9ymaeyMb3bs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:26480573501:android:71e730edcbf828a3773e54",
+        "android_client_info": {
+          "package_name": "com.example.reminder_app.prod"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0UXmnjBhEiP0tgeHeJ7Up9ymaeyMb3bs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

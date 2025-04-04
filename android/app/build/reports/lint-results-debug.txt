@@ -1,0 +1,228 @@
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/values-night/styles.xml:8: Error: android:forceDarkAllowed requires API level 29 (current min is 26) [NewApi]
+        <item name="android:forceDarkAllowed">false</item>
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/values/styles.xml:8: Error: android:forceDarkAllowed requires API level 29 (current min is 26) [NewApi]
+        <item name="android:forceDarkAllowed">false</item>
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/values-night/styles.xml:11: Error: android:windowLayoutInDisplayCutoutMode requires API level 27 (current min is 26) [NewApi]
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/values/styles.xml:11: Error: android:windowLayoutInDisplayCutoutMode requires API level 27 (current min is 26) [NewApi]
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "NewApi":
+   This check scans through all the Android API calls in the application and
+   warns about any calls that are not available on all versions targeted by
+   this application (according to its minimum SDK attribute in the manifest).
+
+   If you really want to use this API and don't need to support older devices
+   just set the minSdkVersion in your build.gradle or AndroidManifest.xml
+   files.
+
+   If your code is deliberately accessing newer APIs, and you have ensured
+   (e.g. with conditional execution) that this code will only ever be called
+   on a supported platform, then you can annotate your class or method with
+   the @TargetApi annotation specifying the local minimum SDK to apply, such
+   as @TargetApi(11), such that this check considers 11 rather than your
+   manifest file's minimum SDK as the required API level.
+
+   If you are deliberately setting android: attributes in style definitions,
+   make sure you place this in a values-vNN folder in order to avoid running
+   into runtime conflicts on certain devices where manufacturers have added
+   custom attributes whose ids conflict with the new ones on later platforms.
+
+   Similarly, you can use tools:targetApi="11" in an XML file to indicate that
+   the element will only be inflated in an adequate context.
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/build.gradle.kts:15: Warning: Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the android.os.Build.VERSION_CODES javadoc for details. [OldTargetApi]
+        targetSdk = 34
+        ~~~~~~~~~~~~~~
+
+   Explanation for issues of type "OldTargetApi":
+   When your application runs on a version of Android that is more recent than
+   your targetSdkVersion specifies that it has been tested with, various
+   compatibility modes kick in. This ensures that your application continues
+   to work, but it may look out of place. For example, if the targetSdkVersion
+   is less than 14, your app may get an option button in the UI.
+
+   To fix this issue, set the targetSdkVersion to the highest available value.
+   Then test your app to make sure everything works correctly. You may want to
+   consult the compatibility notes to see what changes apply to each version
+   you are adding support for:
+   https://developer.android.com/reference/android/os/Build.VERSION_CODES.html
+   as well as follow this guide:
+   https://developer.android.com/distribute/best-practices/develop/target-sdk.
+   html
+
+   https://developer.android.com/distribute/best-practices/develop/target-sdk.html
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/build.gradle.kts:74: Warning: A newer version of com.google.firebase:firebase-bom than 32.7.1 is available: 33.12.0 [GradleDependency]
+    implementation(platform("com.google.firebase:firebase-bom:32.7.1"))
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/build.gradle.kts:79: Warning: A newer version of androidx.work:work-runtime-ktx than 2.9.0 is available: 2.10.0 [GradleDependency]
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/build.gradle.kts:80: Warning: A newer version of androidx.core:core-ktx than 1.12.0 is available: 1.15.0 [GradleDependency]
+    implementation("androidx.core:core-ktx:1.12.0")
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/build.gradle.kts:82: Warning: A newer version of com.android.tools:desugar_jdk_libs than 2.1.4 is available: 2.1.5 [GradleDependency]
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/build.gradle.kts:85: Warning: A newer version of androidx.test.ext:junit than 1.1.5 is available: 1.2.1 [GradleDependency]
+    implementation("androidx.test.ext:junit:1.1.5")
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/build.gradle.kts:87: Warning: A newer version of org.robolectric:robolectric than 4.11.1 is available: 4.12.1 [GradleDependency]
+    testImplementation("org.robolectric:robolectric:4.11.1")
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/build.gradle.kts:92: Warning: A newer version of com.google.android.gms:play-services-basement than 18.5.0 is available: 18.6.0 [GradleDependency]
+    implementation("com.google.android.gms:play-services-basement:18.5.0")
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/build.gradle.kts:93: Warning: A newer version of com.google.android.gms:play-services-auth than 20.7.0 is available: 21.3.0 [GradleDependency]
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/build.gradle.kts:94: Warning: A newer version of com.google.android.gms:play-services-base than 18.5.0 is available: 18.6.0 [GradleDependency]
+    implementation("com.google.android.gms:play-services-base:18.5.0")
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "GradleDependency":
+   This detector looks for usages of libraries where the version you are using
+   is not the current stable release. Using older versions is fine, and there
+   are cases where you deliberately want to stick with an older version.
+   However, you may simply not be aware that a more recent version is
+   available, and that is what this lint check helps find.
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/build.gradle.kts:19: Warning: Missing x86_64 ABI support for ChromeOS [ChromeOsAbiSupport]
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "ChromeOsAbiSupport":
+   To properly support ChromeOS, your Android application should have an x86
+   and/or x86_64 binary as part of the build configuration. To fix the issue,
+   ensure your files are properly optimized for ARM; the binary translator
+   will then ensure compatibility with x86. Alternatively, add an abiSplit for
+   x86 within your build.gradle file and create the required x86
+   dependencies.
+
+   https://developer.android.com/ndk/guides/abis
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/AndroidManifest.xml:73: Warning: Exported receiver does not require permission [ExportedReceiver]
+        <receiver
+         ~~~~~~~~
+
+   Explanation for issues of type "ExportedReceiver":
+   Exported receivers (receivers which either set exported=true or contain an
+   intent-filter and do not specify exported=false) should define a permission
+   that an entity must have in order to launch the receiver or bind to it.
+   Without this, any application can use this receiver.
+
+   https://goo.gle/ExportedReceiver
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/AndroidManifest.xml:67: Warning: Exported service does not require permission [ExportedService]
+        <service
+         ~~~~~~~
+
+   Explanation for issues of type "ExportedService":
+   Exported services (services which either set exported=true or contain an
+   intent-filter and do not specify exported=false) should define a permission
+   that an entity must have in order to launch the service or bind to it.
+   Without this, any application can use this service.
+
+   https://goo.gle/ExportedService
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/java/com/example/reminder_app/RescheduleService.java:108: Warning: Unnecessary; SDK_INT is always >= 26 [ObsoleteSdkInt]
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/drawable-v21: Warning: This folder configuration (v21) is unnecessary; minSdkVersion is 26. Merge all the resources in this folder into drawable. [ObsoleteSdkInt]
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/mipmap-anydpi-v26: Warning: This folder configuration (v26) is unnecessary; minSdkVersion is 26. Merge all the resources in this folder into mipmap-anydpi. [ObsoleteSdkInt]
+
+   Explanation for issues of type "ObsoleteSdkInt":
+   This check flags version checks that are not necessary, because the
+   minSdkVersion (or surrounding known API level) is already at least as high
+   as the version checked for.
+
+   Similarly, it also looks for resources in -vNN folders, such as values-v14
+   where the version qualifier is less than or equal to the minSdkVersion,
+   where the contents should be merged into the best folder.
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/raw/notification_ringtone.mp3: Warning: The resource R.raw.notification_ringtone appears to be unused [UnusedResources]
+
+   Explanation for issues of type "UnusedResources":
+   Unused resources make applications larger and slow down builds.
+
+
+   The unused resource check can ignore tests. If you want to include
+   resources that are only referenced from tests, consider packaging them in a
+   test source set instead.
+
+   You can include test sources in the unused resource check by setting the
+   system property lint.unused-resources.include-tests =true, and to exclude
+   them (usually for performance reasons), use
+   lint.unused-resources.exclude-tests =true.
+   ,
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/mipmap-hdpi/ic_launcher.png: Warning: Launcher icons should not fill every pixel of their square region; see the design guide for details [IconLauncherShape]
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/mipmap-mdpi/ic_launcher.png: Warning: Launcher icons should not fill every pixel of their square region; see the design guide for details [IconLauncherShape]
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png: Warning: Launcher icons should not fill every pixel of their square region; see the design guide for details [IconLauncherShape]
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png: Warning: Launcher icons should not fill every pixel of their square region; see the design guide for details [IconLauncherShape]
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png: Warning: Launcher icons should not fill every pixel of their square region; see the design guide for details [IconLauncherShape]
+
+   Explanation for issues of type "IconLauncherShape":
+   According to the Android Design Guide
+   (https://d.android.com/r/studio-ui/designer/material/iconography) your
+   launcher icons should "use a distinct silhouette", a "three-dimensional,
+   front view, with a slight perspective as if viewed from above, so that
+   users perceive some depth."
+
+   The unique silhouette implies that your launcher icon should not be a
+   filled square.
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml:2: Warning: The application adaptive icon is missing a monochrome tag [MonochromeLauncherIcon]
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+^
+
+   Explanation for issues of type "MonochromeLauncherIcon":
+   If android:roundIcon and android:icon are both in your manifest, you must
+   either remove the reference to android:roundIcon if it is not needed; or,
+   supply the monochrome icon in the drawable defined by the android:roundIcon
+   and android:icon attribute.
+
+   For example, if android:roundIcon and android:icon are both in the
+   manifest, a launcher might choose to use android:roundIcon over
+   android:icon to display the adaptive app icon. Therefore, your themed
+   application iconwill not show if your monochrome attribute is not also
+   specified in android:roundIcon.
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/drawable/background.png: Warning: The background.png icon has identical contents in the following configuration folders: drawable-v21, drawable [IconDuplicatesConfig]
+
+   Explanation for issues of type "IconDuplicatesConfig":
+   If an icon is provided under different configuration parameters such as
+   drawable-hdpi or -v11, they should typically be different. This detector
+   catches cases where the same icon is provided in different configuration
+   folder which is usually not intentional.
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/drawable/background.png: Warning: Found bitmap drawable res/drawable/background.png in densityless folder [IconLocation]
+
+   Explanation for issues of type "IconLocation":
+   The res/drawable folder is intended for density-independent graphics such
+   as shapes defined in XML. For bitmaps, move it to drawable-mdpi and
+   consider providing higher and lower resolution versions in drawable-ldpi,
+   drawable-hdpi and drawable-xhdpi. If the icon really is density independent
+   (for example a solid color) you can place it in drawable-nodpi.
+
+   https://developer.android.com/guide/practices/screens_support.html
+
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/drawable-night-hdpi/android12splash.png: Warning: The following unrelated icon files have identical contents: android12splash.png, splash.png, android12splash.png [IconDuplicates]
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/drawable-night-mdpi/android12splash.png: Warning: The following unrelated icon files have identical contents: android12splash.png, splash.png, android12splash.png [IconDuplicates]
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/drawable-xhdpi/splash.png: Warning: The following unrelated icon files have identical contents: android12splash.png, android12splash.png, splash.png [IconDuplicates]
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/drawable-xxhdpi/splash.png: Warning: The following unrelated icon files have identical contents: android12splash.png, android12splash.png, splash.png [IconDuplicates]
+/Users/krishna/AndroidStudioProjects/reminder_app/android/app/src/main/res/drawable-xxxhdpi/splash.png: Warning: The following unrelated icon files have identical contents: android12splash.png, android12splash.png, splash.png [IconDuplicates]
+
+   Explanation for issues of type "IconDuplicates":
+   If an icon is repeated under different names, you can consolidate and just
+   use one of the icons and delete the others to make your application
+   smaller. However, duplicated icons usually are not intentional and can
+   sometimes point to icons that were accidentally overwritten or accidentally
+   not updated.
+
+4 errors, 30 warnings

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.7.0" type="partial_results">
+    <map id="NotificationPermission">
+        <location id="class"
+            file="$GRADLE_USER_HOME/caches/8.9/transforms/d498a378257b9b797f98bcbabd942fce/transformed/out/jars/classes.jar"/>
+        <entry
+            name="className"
+            string="com/dexterous/flutterlocalnotifications/FlutterLocalNotificationsPlugin"/>
+    </map>
+    <map id="UnsafeImplicitIntentLaunch">
+            <map id="actionsSent">
+                    <map id="com.example.notifications.EMAIL_INTENT (used to send a broadcast)">
+                        <location id="0"
+                            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/example/reminder_app/MainActivity.java"
+                            line="82"
+                            column="25"
+                            startOffset="3143"
+                            endLine="82"
+                            endColumn="77"
+                            endOffset="3195"/>
+                    </map>
+            </map>
+    </map>
+    <map id="UnsafeIntentLaunch">
+            <map id="unprotected">
+                <entry
+                    name="com.example.reminder_app.DeviceBootReceiver"
+                    boolean="true"/>
+                <entry
+                    name="com.example.reminder_app.EmailBroadcastReceiver"
+                    boolean="true"/>
+                <entry
+                    name="com.example.reminder_app.MainActivity"
+                    boolean="true"/>
+                <entry
+                    name="com.example.reminder_app.RescheduleService"
+                    boolean="true"/>
+            </map>
+    </map>
+    <map id="UnusedResources">
+        <location id="R.raw.notification_ringtone"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/raw/notification_ringtone.mp3"/>
+        <entry
+            name="model"
+            string="attr[android_colorBackground(R)],color[ic_launcher_background(U)],drawable[background(U),launch_background(U),splash(U),android12splash(U),ic_launcher_foreground(U)],mipmap[ic_launcher(U)],raw[notification_ringtone(D)],style[LaunchTheme(U),NormalTheme(U)];3^2^4,7^1^6,9^3^5,a^0;;;"/>
+    </map>
+
+</incidents>

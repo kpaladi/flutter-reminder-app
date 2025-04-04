@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gcm_defaultSenderId" translatable="false">26480573501</string>
+    <string name="google_api_key" translatable="false">AIzaSyA0UXmnjBhEiP0tgeHeJ7Up9ymaeyMb3bs</string>
+    <string name="google_app_id" translatable="false">1:26480573501:android:66ac4dc6f35799af773e54</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyA0UXmnjBhEiP0tgeHeJ7Up9ymaeyMb3bs</string>
+    <string name="google_storage_bucket" translatable="false">reminderapp-cff3b.firebasestorage.app</string>
+    <string name="project_id" translatable="false">reminderapp-cff3b</string>
+</resources>
