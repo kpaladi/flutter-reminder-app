@@ -52,3 +52,6 @@ app.*.map.json
 /android/app/release
 android/.gradle/
 android/app/google-services.json
+android/app/build
+*.bin
+*.dex
