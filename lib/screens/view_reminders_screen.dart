@@ -1,8 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import '../services/notification_service.dart';
 import 'edit_reminder_screen.dart';
+import 'package:csv/csv.dart';
 
 class ViewRemindersScreen extends StatefulWidget {
   const ViewRemindersScreen({super.key});
@@ -13,8 +18,7 @@ class ViewRemindersScreen extends StatefulWidget {
 
 class ViewRemindersScreenState extends State<ViewRemindersScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final NotificationService _notificationService =
-      NotificationService(); // Initialize notification service
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
@@ -22,13 +26,12 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
   }
 
   void scheduleNotification(
-    String reminderId,
-    Map<String, dynamic> reminderData,
-  ) {
+      String reminderId,
+      Map<String, dynamic> reminderData,
+      ) {
     if (reminderData['timestamp'] is Timestamp) {
-      DateTime? scheduledTime =
-          (reminderData['timestamp'] as Timestamp).toDate();
-      int notificationId = generateUniqueId(reminderId); // Use stable ID
+      DateTime scheduledTime = (reminderData['timestamp'] as Timestamp).toDate();
+      int notificationId = generateUniqueId(reminderId);
 
       _notificationService.scheduleNotification(
         notificationId,
@@ -39,14 +42,9 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
     }
   }
 
-  int generateUniqueId(String reminderId) {
-    return reminderId.hashCode;
-  }
+  int generateUniqueId(String reminderId) => reminderId.hashCode;
 
-  void _editReminder(
-    String reminderId,
-    Map<String, dynamic> reminderData,
-  ) async {
+  void _editReminder(String reminderId, Map<String, dynamic> reminderData) async {
     DateTime? reminderDateTime;
     if (reminderData['timestamp'] is Timestamp) {
       reminderDateTime = (reminderData['timestamp'] as Timestamp).toDate();
@@ -55,25 +53,17 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
     final updatedReminder = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (context) => EditReminderScreen(
-              reminderId: reminderId,
-              reminderData: {...reminderData, 'timestamp': reminderDateTime},
-            ),
+        builder: (context) => EditReminderScreen(
+          reminderId: reminderId,
+          reminderData: {...reminderData, 'timestamp': reminderDateTime},
+        ),
       ),
     );
 
     if (updatedReminder != null) {
       await _db.collection("reminders").doc(reminderId).update(updatedReminder);
-
-      // Cancel the old notification
-      final NotificationService notificationService = NotificationService();
-      await notificationService.cancelNotification(reminderId.hashCode);
-
-      scheduleNotification(
-        reminderId,
-        updatedReminder,
-      ); // Schedule notification after update
+      await _notificationService.cancelNotification(reminderId.hashCode);
+      scheduleNotification(reminderId, updatedReminder);
     }
   }
 
@@ -90,18 +80,18 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
   void _confirmDeleteReminder(String reminderId) {
     showDialog(
       context: context,
-      builder: (BuildContext dialogContext) { // Use a separate context
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text("Delete Reminder"),
           content: Text("Are you sure you want to delete this reminder?"),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(), // Use dialogContext
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text("Cancel"),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop(); // Close dialog before async operation
+                Navigator.of(dialogContext).pop();
                 _deleteReminder(reminderId);
               },
               child: Text("Delete", style: TextStyle(color: Colors.red)),
@@ -115,11 +105,60 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
   Future<void> _deleteReminder(String reminderId) async {
     try {
       await _db.collection("reminders").doc(reminderId).delete();
-      _notificationService.cancelNotification(reminderId.hashCode); // Cancel notification
+      await _notificationService.cancelNotification(reminderId.hashCode);
     } catch (e) {
       debugPrint("Error deleting reminder: $e");
     }
   }
+
+  Future<void> _exportReminders(List<QueryDocumentSnapshot> reminders) async {
+    try {
+      // Convert reminders to CSV rows
+      List<List<dynamic>> csvData = [
+        ['Title', 'Description', 'Timestamp']
+      ];
+
+      for (var doc in reminders) {
+        var data = doc.data() as Map<String, dynamic>;
+        String title = data['title'] ?? '';
+        String description = data['description'] ?? '';
+        String timestamp = '';
+
+        if (data['timestamp'] is Timestamp) {
+          timestamp = (data['timestamp'] as Timestamp)
+              .toDate()
+              .toString(); // or format if needed
+        }
+
+        csvData.add([title, description, timestamp]);
+      }
+
+      String csv = const ListToCsvConverter().convert(csvData);
+
+      // Get safe app-specific external directory
+      final dir = await getExternalStorageDirectory();
+
+      if (dir == null) {
+        throw Exception("Storage directory not available");
+      }
+
+      // Write to file
+      final file = File('${dir.path}/reminders_export.csv');
+      await file.writeAsString(csv);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exported to ${file.path}')),
+      );
+    } catch (e) {
+      debugPrint("Export failed: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed')),
+      );
+    }
+  }
+
 
 
   @override
@@ -180,16 +219,11 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
                             children: [
                               IconButton(
                                 icon: Icon(Icons.edit, color: Colors.blue),
-                                onPressed:
-                                    () => _editReminder(
-                                      reminder.id,
-                                      reminderData,
-                                    ),
+                                onPressed: () => _editReminder(reminder.id, reminderData),
                               ),
                               IconButton(
                                 icon: Icon(Icons.delete, color: Colors.red),
-                                onPressed:
-                                    () => _confirmDeleteReminder(reminder.id),
+                                onPressed: () => _confirmDeleteReminder(reminder.id),
                               ),
                             ],
                           ),
@@ -200,6 +234,18 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
                 ),
               );
             },
+          );
+        },
+      ),
+      floatingActionButton: StreamBuilder<QuerySnapshot>(
+        stream: _db.collection("reminders").snapshots(),
+        builder: (context, snapshot) {
+          return FloatingActionButton(
+            onPressed: snapshot.hasData
+                ? () => _exportReminders(snapshot.data!.docs)
+                : null,
+            tooltip: 'Export Reminders',
+            child: Icon(Icons.download),
           );
         },
       ),

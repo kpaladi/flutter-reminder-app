@@ -44,6 +44,8 @@ dependencies:
   pub_updater: ^0.4.0
   vm_service: 14.3.1
   flutter_dotenv: ^5.1.0
+  path_provider: ^2.0.14
+  csv: ^5.0.2
 
   #  firebase_core: latest_version
   #  firebase_auth: latest_version

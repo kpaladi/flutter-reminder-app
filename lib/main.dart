@@ -136,7 +136,7 @@ class HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings, color: Colors.black),
+            icon: Icon(Icons.settings, color: Colors.blue[800]),
             onPressed: () async {
               await Navigator.push(
                 context,
