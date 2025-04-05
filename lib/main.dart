@@ -1,4 +1,6 @@
 
+import 'dart:ui';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -17,23 +19,47 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
-  await Firebase.initializeApp();
-  await _requestPermissions();
-  await initializeNotifications();
-  await fetchAndScheduleReminders();
 
   const MethodChannel platform = MethodChannel('reminder_channel_darahaas');
 
   platform.setMethodCallHandler((MethodCall call) async {
     if (call.method == "rescheduleNotifications") {
-      await fetchAndScheduleReminders();
-    }
-  });
-  debugPrint("🚀 Flutter App Starting...");
+      print("🛠️ Dart: Received 'rescheduleNotifications' method call");
+      try {
+        await Firebase.initializeApp();
+        print("✅ Firebase initialized");
 
-  runApp(ReminderApp());
+        await initializeNotifications();
+        print("✅ Notifications initialized");
+
+        await fetchAndScheduleReminders();
+        print("✅ Reminders fetched and scheduled");
+
+        return "done";
+      } catch (e, stackTrace) {
+        print("❌ Error during rescheduleNotifications: $e");
+        print("📍 StackTrace: $stackTrace");
+        return Future.error("Failed to reschedule: $e");
+      }
+    }
+    return null;
+  });
+
+
+  // Only run full app if UI is available
+  if (PlatformDispatcher.instance.implicitView != null) {
+    await dotenv.load(fileName: ".env");
+    await Firebase.initializeApp();
+    await _requestPermissions();
+    await initializeNotifications();
+    // await fetchAndScheduleReminders(); // Dont need to refresh on every app start. Providing manual refresh option on UI.
+    debugPrint("🚀 Flutter App Starting...");
+    runApp(ReminderApp());
+  } else {
+    debugPrint("💤 Headless Dart execution only — UI not started.");
+  }
 }
+
 
 Future<void> _requestPermissions() async {
   List<Permission> permissions = [
@@ -98,7 +124,7 @@ class HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
 
-    _checkEmailSet(); // Your existing function
+    _checkEmailSet();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -106,7 +132,6 @@ class HomeScreenState extends State<HomeScreen> {
             context); // ✅ Context is now safe to use
       }
     });
-
   }
 
   Future<void> _checkEmailSet() async {
@@ -128,10 +153,10 @@ class HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         backgroundColor: Colors.greenAccent,
         leading: Padding(
-          padding: const EdgeInsets.all(8.0), // Adjust padding
+          padding: const EdgeInsets.all(8.0),
           child: Image.asset(
-            'assets/logo.png', // Your logo path
-            height: 40, // Adjust size
+            'assets/logo.png',
+            height: 40,
           ),
         ),
         actions: [
@@ -142,8 +167,22 @@ class HomeScreenState extends State<HomeScreen> {
                 context,
                 MaterialPageRoute(builder: (context) => SettingsScreen()),
               );
-              _checkEmailSet(); // Refresh email status after settings change
+              _checkEmailSet();
             },
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'refresh') {
+                _refreshReminders(context);
+              }
+            },
+            itemBuilder: (context) =>
+            [
+              const PopupMenuItem(
+                value: 'refresh',
+                child: Text('Refresh Reminders'),
+              ),
+            ],
           ),
         ],
       ),
@@ -216,3 +255,16 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
+  void _refreshReminders(BuildContext context) async {
+    try {
+      await fetchAndScheduleReminders();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('🔄 Reminders refreshed')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('⚠️ Failed to refresh: $e')),
+      );
+    }
+  }

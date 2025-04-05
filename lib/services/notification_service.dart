@@ -47,6 +47,7 @@ class NotificationService {
           priority: Priority.high,
           fullScreenIntent: true,
           timeoutAfter: 60000,
+          playSound: true,
           sound: RawResourceAndroidNotificationSound('notification_ringtone'),
           showWhen: true,
           autoCancel: false,

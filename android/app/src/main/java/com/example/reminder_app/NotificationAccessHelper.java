@@ -3,7 +3,6 @@ package com.example.reminder_app;
 import android.content.Context;
 import android.content.Intent;
 import android.provider.Settings;
-import android.text.TextUtils;
 
 public class NotificationAccessHelper {
 

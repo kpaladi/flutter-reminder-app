@@ -5,12 +5,12 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
-import android.os.Build;
 import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.util.Log;
 import android.content.Context;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
 import io.flutter.embedding.engine.FlutterEngine;
@@ -71,7 +71,7 @@ public class RescheduleService extends Service {
         }
 
         // Create the method channel and invoke the method
-        MethodChannel channel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "reminder_channel_darahaas");
+        MethodChannel channel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL_ID);
         Log.d(TAG, "MethodChannel created.");
         channel.invokeMethod("rescheduleNotifications", null, new MethodChannel.Result() {
             @Override
@@ -81,7 +81,7 @@ public class RescheduleService extends Service {
             }
 
             @Override
-            public void error(String errorCode, String errorMessage, Object errorDetails) {
+            public void error(@NonNull String errorCode, String errorMessage, Object errorDetails) {
                 Log.e(TAG, "Method call failed: " + errorCode + " " + errorMessage);
                 stopSelf(); // Stop the service even if there's an error
             }
@@ -105,18 +105,16 @@ public class RescheduleService extends Service {
     }
 
     private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Log.d(TAG, "Creating notification channel.");
-            NotificationChannel serviceChannel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Reschedule Notifications",
-                    NotificationManager.IMPORTANCE_LOW
-            );
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(serviceChannel);
-                Log.d(TAG, "Notification channel created.");
-            }
+        Log.d(TAG, "Creating notification channel.");
+        NotificationChannel serviceChannel = new NotificationChannel(
+                CHANNEL_ID,
+                "Schedule Notifications",
+                NotificationManager.IMPORTANCE_LOW
+        );
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager != null) {
+            manager.createNotificationChannel(serviceChannel);
+            Log.d(TAG, "Notification channel created.");
         }
     }
 
@@ -124,6 +122,11 @@ public class RescheduleService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy called.");
+
+        SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(PREF_SERVICE_RUNNING, false);
+        editor.apply();
     }
 
     private Notification getNotification() {

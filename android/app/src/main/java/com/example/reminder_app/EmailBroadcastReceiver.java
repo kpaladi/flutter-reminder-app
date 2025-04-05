@@ -19,7 +19,6 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
-import com.example.reminder_app.BuildConfig;
 
 import android.content.SharedPreferences;
 
@@ -44,7 +43,7 @@ public class EmailBroadcastReceiver extends BroadcastReceiver {
         }
         String emailFlagKey = "flutter.email_enabled";
         Log.d("SharedPreferences", "Accessing key: " + emailFlagKey);
-        Boolean sendEmail = prefs.getBoolean(emailFlagKey, false);
+        boolean sendEmail = prefs.getBoolean(emailFlagKey, false);
         Log.d("SharedPreferences", "Retrieved email preference: " + sendEmail);
 
         if (!sendEmail) {
@@ -82,10 +81,6 @@ public class EmailBroadcastReceiver extends BroadcastReceiver {
             Log.e(TAG, "❌ No extras received!");
             return;
         }
-
-/*        for (String key : extras.keySet()) { => Commented to suppress uses deprecated API.
-            Log.d(TAG, "📝 Extra: " + key + " = " + extras.get(key));
-        }*/
 
         String description = intent.getStringExtra("description");
 

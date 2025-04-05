@@ -80,7 +80,9 @@ class EditReminderScreenState extends State<EditReminderScreen> {
   }
 
   Future<void> _updateReminder() async {
-    if (!_hasChanges) return;
+    if (!_hasChanges) return; // do we really need this, as the button would be disabled when there are no changes.
+
+    await NotificationService().cancelNotification(widget.reminderId.hashCode);
 
     // Update Firestore
     await FirebaseFirestore.instance.collection("reminders").doc(widget.reminderId).update({
@@ -90,7 +92,6 @@ class EditReminderScreenState extends State<EditReminderScreen> {
     });
 
     // Cancel and reschedule notification if time changed
-    NotificationService().cancelNotification(widget.reminderId.hashCode);
     NotificationService().scheduleNotification(
       widget.reminderId.hashCode,
       _titleController.text,

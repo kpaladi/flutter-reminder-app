@@ -20,8 +20,7 @@ public class DeviceBootReceiver extends BroadcastReceiver {
                 context.startForegroundService(serviceIntent);
                 Log.d(TAG, "Started RescheduleService.");
             } catch (Exception e) {
-                Log.e(TAG, "Error starting RescheduleService: " + e.getMessage());
-                e.printStackTrace();
+                Log.e(TAG, "Error starting RescheduleService: " + e);
             }
         } else {
             Log.d(TAG, "Received intent with action: " + intent.getAction());

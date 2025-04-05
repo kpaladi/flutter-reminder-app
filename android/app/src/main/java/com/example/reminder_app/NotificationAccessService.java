@@ -2,16 +2,9 @@ package com.example.reminder_app;
 
 import android.content.Intent;
 import android.provider.Settings;
-import android.service.notification.NotificationListenerService;
-import android.content.ComponentName;
 import android.content.Context;
-import android.os.Build;
-import android.text.TextUtils;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
-
-import java.util.Set;
 
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
@@ -61,3 +54,8 @@ public class NotificationAccessService implements MethodCallHandler {
         context.startActivity(intent);
     }
 }
+
+
+
+
+

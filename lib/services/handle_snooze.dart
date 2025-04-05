@@ -54,7 +54,7 @@ Future<void> handleSnooze(String? payload) async {
           actions: <AndroidNotificationAction>[
             AndroidNotificationAction(
               'snooze_action_$id',
-              'Snooze 5 min',
+              'tap to snooze further',
               showsUserInterface: true,
             ),
           ],
@@ -65,7 +65,7 @@ Future<void> handleSnooze(String? payload) async {
       payload: payload,
     );
 
-    debugPrint("✅ Snooze notification rescheduled for $snoozeTime");
+    debugPrint("✅ Snooze notification scheduled for $snoozeTime");
   } catch (e) {
     debugPrint("❌ Error snoozing notification: $e");
   }

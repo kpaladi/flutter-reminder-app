@@ -14,11 +14,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="com.android.vending.BILLING" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <!-- android/app/src/main/AndroidManifest.xml -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
         android:label="Reminder App"
@@ -64,20 +60,15 @@
 
         <service
             android:name=".RescheduleService"
-            android:exported="true"
+            android:exported="false"
             android:foregroundServiceType="dataSync" />
 
         <receiver
             android:name=".EmailBroadcastReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.example.notifications.EMAIL_INTENT" />
-            </intent-filter>
-        </receiver>
+            android:exported="false" />
 
         <service
-            android:name=".NotificationMonitorService"
+            android:name=".NotificationMonitorEmailService"
             android:exported="false"
             android:label="Notification Monitor"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
@@ -87,8 +78,8 @@
         </service>
 
 
-        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver" android:exported="true"/>
-        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" android:exported="true"/>
+        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver" android:exported="false"/>
+        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" android:exported="false"/>
 
 
     </application>
