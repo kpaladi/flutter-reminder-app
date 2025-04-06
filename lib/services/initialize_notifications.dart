@@ -35,10 +35,11 @@ Future<void> initializeNotifications([
     debugPrint("✅ Notifications initialized: $initSuccess");
 
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'reminder_channel_darahaas',
+      'reminder_channel_darahaas_v3',
       'Reminders',
       description: 'Channel for reminder notifications',
       importance: Importance.high,
+      sound: RawResourceAndroidNotificationSound('notification_ringtone'),
     );
 
     final androidPlugin =

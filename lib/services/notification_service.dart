@@ -40,7 +40,7 @@ class NotificationService {
       tz.TZDateTime.from(scheduledTime, tz.local),
       NotificationDetails(
         android: AndroidNotificationDetails(
-          'reminder_channel_darahaas',
+          'reminder_channel_darahaas_v3',
           'Reminders',
           channelDescription: 'Channel for scheduled reminders',
           importance: Importance.high,

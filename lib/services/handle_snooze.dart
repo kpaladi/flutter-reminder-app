@@ -45,7 +45,7 @@ Future<void> handleSnooze(String? payload) async {
       tzSnoozeTime,
       NotificationDetails(
         android: AndroidNotificationDetails(
-          'reminder_channel_darahaas',
+          'reminder_channel_darahaas_v3',
           'Reminders',
           channelDescription: 'Channel for scheduled reminders',
           importance: Importance.high,
