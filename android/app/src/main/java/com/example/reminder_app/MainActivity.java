@@ -1,6 +1,5 @@
 package com.example.reminder_app;
 
-import android.os.Bundle;
 import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
