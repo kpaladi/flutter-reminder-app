@@ -1,34 +1,41 @@
-import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-const platform = MethodChannel('notification_access_channel');
+const MethodChannel _platform = MethodChannel('notification_access_channel');
 
 Future<void> checkAndRequestNotificationAccess(BuildContext context) async {
   try {
-    final bool isGranted =
-    await platform.invokeMethod('isNotificationAccessEnabled');
+    final bool isGranted = await _platform.invokeMethod('isNotificationAccessEnabled');
 
     if (isGranted) {
       debugPrint("✅ Notification listener access is already granted.");
       return;
     }
 
-    // If not granted, prompt user
+    if (!context.mounted) return;
+
+    // Prompt user if not granted
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Permission Required"),
         content: const Text(
-            "This app needs Notification Listener Access to function properly."),
+          "This app needs Notification Listener Access to function properly.\n\n"
+              "Please enable it in system settings.",
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
-              await platform.invokeMethod('openNotificationAccessSettings');
+              Navigator.of(context).pop();
+              try {
+                await _platform.invokeMethod('openNotificationAccessSettings');
+              } catch (e) {
+                debugPrint("⚠️ Failed to open settings: $e");
+              }
             },
             child: const Text("Grant Access"),
           ),

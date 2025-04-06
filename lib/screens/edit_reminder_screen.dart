@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../models/reminder_model.dart';
 import '../services/notification_service.dart';
 
 class EditReminderScreen extends StatefulWidget {
-  final String reminderId;
-  final Map<String, dynamic> reminderData;
+  final Reminder reminder;
 
-  const EditReminderScreen({
-    super.key,
-    required this.reminderId,
-    required this.reminderData,
-  });
+  const EditReminderScreen({super.key, required this.reminder});
 
   @override
   EditReminderScreenState createState() => EditReminderScreenState();
@@ -22,31 +18,24 @@ class EditReminderScreenState extends State<EditReminderScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   DateTime? _selectedDateTime;
-  bool _hasChanges = false; // Track if any changes were made
+  bool _hasChanges = false;
 
   @override
   void initState() {
     super.initState();
+    _titleController = TextEditingController(text: widget.reminder.title);
+    _descriptionController = TextEditingController(text: widget.reminder.description);
+    _selectedDateTime = widget.reminder.timestamp;
 
-    _titleController = TextEditingController(text: widget.reminderData['title']);
-    _descriptionController = TextEditingController(text: widget.reminderData['description']);
-
-    if (widget.reminderData['timestamp'] is Timestamp) {
-      _selectedDateTime = (widget.reminderData['timestamp'] as Timestamp).toDate();
-    } else if (widget.reminderData['timestamp'] is DateTime) {
-      _selectedDateTime = widget.reminderData['timestamp'];
-    }
-
-    // Listen for text changes
     _titleController.addListener(_checkForChanges);
     _descriptionController.addListener(_checkForChanges);
   }
 
   void _checkForChanges() {
     setState(() {
-      _hasChanges = _titleController.text != widget.reminderData['title'] ||
-          _descriptionController.text != widget.reminderData['description'] ||
-          _selectedDateTime != widget.reminderData['timestamp'];
+      _hasChanges = _titleController.text != widget.reminder.title ||
+          _descriptionController.text != widget.reminder.description ||
+          _selectedDateTime != widget.reminder.timestamp;
     });
   }
 
@@ -80,39 +69,50 @@ class EditReminderScreenState extends State<EditReminderScreen> {
   }
 
   Future<void> _updateReminder() async {
-    if (!_hasChanges) return; // do we really need this, as the button would be disabled when there are no changes.
+    if (!_hasChanges) return;
 
-    await NotificationService().cancelNotification(widget.reminderId.hashCode);
-
-    // Update Firestore
-    await FirebaseFirestore.instance.collection("reminders").doc(widget.reminderId).update({
-      'title': _titleController.text,
-      'description': _descriptionController.text,
-      'timestamp': _selectedDateTime != null ? Timestamp.fromDate(_selectedDateTime!) : null,
-    });
-
-    // Cancel and reschedule notification if time changed
-    NotificationService().scheduleNotification(
-      widget.reminderId.hashCode,
-      _titleController.text,
-      _descriptionController.text,
-      _selectedDateTime!,
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Reminder Updated!")));
+    if (_selectedDateTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a valid date and time")),
+      );
+      return;
     }
 
-    // ✅ Reset the state with updated values
-    setState(() {
-      widget.reminderData['title'] = _titleController.text;
-      widget.reminderData['description'] = _descriptionController.text;
-      widget.reminderData['timestamp'] = _selectedDateTime;
+    await NotificationService().cancelNotification(widget.reminder.id);
 
-      _hasChanges = false; // Disable button as no pending changes
+    Reminder updated = Reminder(
+      id: widget.reminder.id,
+      title: _titleController.text,
+      description: _descriptionController.text,
+      timestamp: _selectedDateTime,
+    );
+
+    await FirebaseFirestore.instance
+        .collection("reminders")
+        .doc(updated.id)
+        .update(updated.toMap());
+
+    NotificationService().scheduleNotification(updated);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Reminder Updated!")),
+      );
+    }
+
+    setState(() {
+      _hasChanges = false;
     });
   }
 
+  void _resetChanges() {
+    setState(() {
+      _titleController.text = widget.reminder.title;
+      _descriptionController.text = widget.reminder.description;
+      _selectedDateTime = widget.reminder.timestamp;
+      _hasChanges = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,14 +126,14 @@ class EditReminderScreenState extends State<EditReminderScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextFormField(
-                textCapitalization: TextCapitalization.sentences,
                 controller: _titleController,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(labelText: "Title"),
                 validator: (value) => value!.isEmpty ? "Title cannot be empty" : null,
               ),
               TextFormField(
-                textCapitalization: TextCapitalization.sentences,
                 controller: _descriptionController,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(labelText: "Description"),
                 validator: (value) => value!.isEmpty ? "Description cannot be empty" : null,
               ),
@@ -143,7 +143,7 @@ class EditReminderScreenState extends State<EditReminderScreen> {
                   TextButton(
                     onPressed: _pickDateTime,
                     style: TextButton.styleFrom(
-                      side: const BorderSide(color: Colors.black, width: 1), // Border
+                      side: const BorderSide(color: Colors.black),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
@@ -158,9 +158,18 @@ class EditReminderScreenState extends State<EditReminderScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _hasChanges ? _updateReminder : null, // Disable if no changes
-                child: const Text("Update Reminder"),
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: _hasChanges ? _updateReminder : null,
+                    child: const Text("Update Reminder"),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: _hasChanges ? _resetChanges : null,
+                    child: const Text("Reset"),
+                  ),
+                ],
               ),
             ],
           ),

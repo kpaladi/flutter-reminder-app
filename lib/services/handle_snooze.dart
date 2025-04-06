@@ -1,48 +1,57 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
+
+import '../models/reminder_model.dart';
 import 'notification_helper.dart';
 
 Future<void> handleSnooze(String? payload) async {
-  List<String>? parts = payload?.split('|'); // Null-aware split
+  Reminder? reminder;
 
-  int? id;
-  String? title;
-  String? description;
+  if (payload != null) {
+    try {
+      final parts = payload.split('|');
+      if (parts.length >= 3) {
+        final id = parts[0];
+        String title = parts[1];
+        final description = parts[2];
 
-  if (parts != null && parts.length >= 3) {
-    id = int.parse(parts[0]);
-    title = parts[1];
-    description = parts[2];
+        // Add prefix if not already snoozed
+        if (!title.startsWith('Snooze - ')) {
+          title = 'Snooze - $title';
+        }
 
-    if (!title.startsWith('Snooze - ')) {
-      //Check for existing prefix.
-      title = 'Snooze - $title';
-      parts[1] = title;
+        reminder = Reminder(
+          id: id,
+          title: title,
+          description: description,
+          timestamp: DateTime.now().add(const Duration(minutes: 1)),
+        );
+
+        payload = '${reminder.id}|${reminder.title}|${reminder.description}';
+      }
+    } catch (e) {
+      debugPrint("❌ Failed to parse payload into Reminder: $e");
+      return;
     }
-
-    payload = parts.join('|'); // Reconstruct payload
-  } else {
-    //handle null payload, or parts.
-    id = null;
-    title = null;
-    description = null;
-    payload = null;
   }
 
-  // Set snooze duration (e.g., 5 minutes later)
-  DateTime snoozeTime = DateTime.now().add(Duration(minutes: 1));
-  tz.TZDateTime tzSnoozeTime = tz.TZDateTime.from(snoozeTime, tz.local);
+  if (reminder == null || reminder.timestamp == null) {
+    debugPrint("❌ Reminder is null or timestamp missing, aborting snooze.");
+    return;
+  }
 
-  debugPrint("⏳ Snoozing notification ID $id for 5 minutes...");
+  final int notifId = int.tryParse(reminder.id) ?? DateTime.now().millisecondsSinceEpoch;
+  final tz.TZDateTime snoozeTime = tz.TZDateTime.from(reminder.timestamp!, tz.local);
 
-  // Directly schedule the snoozed notification
+  debugPrint("⏳ Snoozing notification ID $notifId for 1 minute...");
+
   try {
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      id!,
-      title,
-      description,
-      tzSnoozeTime,
+      notifId,
+      reminder.title,
+      reminder.description,
+      snoozeTime,
       NotificationDetails(
         android: AndroidNotificationDetails(
           'reminder_channel_darahaas_v3',
@@ -51,10 +60,12 @@ Future<void> handleSnooze(String? payload) async {
           importance: Importance.high,
           priority: Priority.high,
           autoCancel: false,
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound('notification_ringtone'),
           actions: <AndroidNotificationAction>[
             AndroidNotificationAction(
-              'snooze_action_$id',
-              'tap to snooze further',
+              'snooze_action_$notifId',
+              'Tap to snooze again',
               showsUserInterface: true,
             ),
           ],
@@ -65,8 +76,8 @@ Future<void> handleSnooze(String? payload) async {
       payload: payload,
     );
 
-    debugPrint("✅ Snooze notification scheduled for $snoozeTime");
+    debugPrint("✅ Snoozed notification scheduled for ${reminder.timestamp}");
   } catch (e) {
-    debugPrint("❌ Error snoozing notification: $e");
+    debugPrint("❌ Error scheduling snoozed notification: $e");
   }
 }

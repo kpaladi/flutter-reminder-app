@@ -1,12 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:reminder_app/models/reminder_model.dart';
 import 'package:reminder_app/services/notification_helper.dart';
 import 'notification_service.dart';
 
 Future<void> scheduleAllReminders(BuildContext context) async {
-  QuerySnapshot reminderDocs =
-      await FirebaseFirestore.instance.collection("reminders").get();
+  final snapshot = await FirebaseFirestore.instance.collection("reminders").get();
 
   // Cancel all existing notifications before scheduling new ones
   await flutterLocalNotificationsPlugin.cancelAll();
@@ -14,21 +14,21 @@ Future<void> scheduleAllReminders(BuildContext context) async {
 
   int scheduledCount = 0;
 
-  for (var doc in reminderDocs.docs) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    if (data['timestamp'] != null) {
-      DateTime reminderTime = (data['timestamp'] as Timestamp).toDate();
+  for (var doc in snapshot.docs) {
+    final data = doc.data();
 
-      // Schedule notification
-      await NotificationService().scheduleNotification(
-        doc.id.hashCode,
-        data['title'],
-        data['description'],
-        reminderTime,
+    if (data['timestamp'] != null) {
+      final reminder = Reminder(
+        id: doc.id,
+        title: data['title'] ?? '',
+        description: data['description'] ?? '',
+        timestamp: (data['timestamp'] as Timestamp).toDate(),
       );
 
+      await NotificationService().scheduleNotification(reminder);
+
       debugPrint(
-        "📅 Scheduled Reminder: '${data['title']}' at ${DateFormat('dd-MM-yyyy HH:mm').format(reminderTime)}",
+        "📅 Scheduled Reminder: '${reminder.title}' at ${DateFormat('dd-MM-yyyy HH:mm').format(reminder.timestamp!)}",
       );
       scheduledCount++;
     } else {
@@ -38,7 +38,7 @@ Future<void> scheduleAllReminders(BuildContext context) async {
 
   debugPrint("✅ Total Reminders Scheduled: $scheduledCount");
 
-  // UI feedback with a Snack bar
+  // UI feedback with a SnackBar
   if (context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

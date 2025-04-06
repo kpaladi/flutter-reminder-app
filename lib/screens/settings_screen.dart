@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/user_settings_model.dart';
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key}); // ✅ Add 'key' parameter
 
@@ -25,20 +27,62 @@ class SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    String savedEmail = prefs.getString('recipient_email') ?? '';
-    bool savedEmailEnabled = prefs.getBool('email_enabled') ?? false;
+    final settings = UserSettings.fromPreferences({
+      'recipient_email': prefs.getString('recipient_email'),
+      'email_enabled': prefs.getBool('email_enabled'),
+    });
 
     setState(() {
-      _emailController.text = savedEmail;
-      _isEmailEnabled = savedEmailEnabled;
-      _initialEmail = savedEmail;
-      _initialEmailEnabled = savedEmailEnabled;
+      _emailController.text = settings.email;
+      _isEmailEnabled = settings.emailEnabled;
+      _initialEmail = settings.email;
+      _initialEmailEnabled = settings.emailEnabled;
       _isSaveEnabled = false;
       _isLoading = false;
     });
 
     _emailController.addListener(_checkForChanges);
   }
+
+  Future<void> _saveSettings() async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final prefs = await SharedPreferences.getInstance();
+
+    final updatedSettings = UserSettings(
+      email: _emailController.text,
+      emailEnabled: _isEmailEnabled,
+    );
+
+    final map = updatedSettings.toPreferencesMap();
+    await prefs.setString('recipient_email', map['recipient_email'] as String);
+    await prefs.setBool('email_enabled', map['email_enabled'] as bool);
+
+    if (!context.mounted) return;
+
+    setState(() {
+      _initialEmail = updatedSettings.email;
+      _initialEmailEnabled = updatedSettings.emailEnabled;
+      _isSaveEnabled = false;
+    });
+
+    scaffoldMessenger.showSnackBar(
+      SnackBar(content: Text('Settings saved successfully!')),
+    );
+  }
+
+  void _resetToInitialValues() {
+    setState(() {
+      _emailController.text = _initialEmail ?? '';
+      _isEmailEnabled = _initialEmailEnabled ?? false;
+      _isSaveEnabled = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Settings reset to last saved state.')),
+    );
+  }
+
+
 
   void _checkForChanges() {
     setState(() {
@@ -48,29 +92,6 @@ class SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  Future<void> _saveSettings() async {
-    final scaffoldMessenger = ScaffoldMessenger.of(
-      context,
-    ); // ✅ Capture before async
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('recipient_email', _emailController.text);
-    await prefs.setBool('email_enabled', _isEmailEnabled);
-
-    if (!context.mounted) {
-      return; // ✅ Ensures widget is still active before calling setState
-    }
-    setState(() {
-      _initialEmail = _emailController.text;
-      _initialEmailEnabled = _isEmailEnabled;
-      _isSaveEnabled = false;
-    });
-
-    // ✅ Use captured scaffoldMessenger instead of context
-    scaffoldMessenger.showSnackBar(
-      SnackBar(content: Text('Settings saved successfully!')),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,9 +135,20 @@ class SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _isSaveEnabled ? _saveSettings : null,
-              child: Text("Save Settings"),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  onPressed: _isSaveEnabled ? _saveSettings : null,
+                  child: Text("Save Settings"),
+                ),
+                TextButton(
+                  onPressed: (_isSaveEnabled || _emailController.text != _initialEmail || _isEmailEnabled != _initialEmailEnabled)
+                      ? _resetToInitialValues
+                      : null,
+                  child: Text("Reset"),
+                ),
+              ],
             ),
           ],
         ),

@@ -1,21 +1,19 @@
-
 import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:reminder_app/models/reminder_model.dart';
 import 'package:reminder_app/screens/add_reminder_screen.dart';
 import 'package:reminder_app/screens/settings_screen.dart';
 import 'package:reminder_app/screens/view_reminders_screen.dart';
 import 'package:reminder_app/services/initialize_notifications.dart';
 import 'package:reminder_app/services/notification_service.dart';
 import 'package:reminder_app/services/special_permission_check.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,42 +22,39 @@ void main() async {
 
   platform.setMethodCallHandler((MethodCall call) async {
     if (call.method == "rescheduleNotifications") {
-      print("🛠️ Dart: Received 'rescheduleNotifications' method call");
+      debugPrint("🛠️ Dart: Received 'rescheduleNotifications' method call");
       try {
         await Firebase.initializeApp();
-        print("✅ Firebase initialized");
+        debugPrint("✅ Firebase initialized");
 
         await initializeNotifications();
-        print("✅ Notifications initialized");
+        debugPrint("✅ Notifications initialized");
 
         await fetchAndScheduleReminders();
-        print("✅ Reminders fetched and scheduled");
+        debugPrint("✅ Reminders fetched and scheduled");
 
         return "done";
       } catch (e, stackTrace) {
-        print("❌ Error during rescheduleNotifications: $e");
-        print("📍 StackTrace: $stackTrace");
+        debugPrint("❌ Error during rescheduleNotifications: $e");
+        debugPrint("📍 StackTrace: $stackTrace");
         return Future.error("Failed to reschedule: $e");
       }
     }
     return null;
   });
 
-
-  // Only run full app if UI is available
   if (PlatformDispatcher.instance.implicitView != null) {
     await dotenv.load(fileName: ".env");
     await Firebase.initializeApp();
     await _requestPermissions();
     await initializeNotifications();
-    // await fetchAndScheduleReminders(); // Dont need to refresh on every app start. Providing manual refresh option on UI.
+
     debugPrint("🚀 Flutter App Starting...");
     runApp(ReminderApp());
   } else {
     debugPrint("💤 Headless Dart execution only — UI not started.");
   }
 }
-
 
 Future<void> _requestPermissions() async {
   List<Permission> permissions = [
@@ -78,26 +73,23 @@ Future<void> _requestPermissions() async {
 Future<void> clearAllScheduledReminders() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove('scheduled_reminders');
-  debugPrint("Cleared all scheduled reminders from SharedPreferences.");
+  debugPrint("🧹 Cleared scheduled reminders from SharedPreferences.");
 }
 
 Future<void> fetchAndScheduleReminders() async {
   final FirebaseFirestore db = FirebaseFirestore.instance;
-
   final snapshot = await db.collection("reminders").get();
 
   await clearAllScheduledReminders();
 
   for (var doc in snapshot.docs) {
-    Map<String, dynamic> reminderData = doc.data();
-    DateTime scheduledTime = (reminderData['timestamp'] as Timestamp).toDate();
-    // Schedule notification
-    await NotificationService().scheduleNotification(
-      doc.id.hashCode,
-      reminderData['title'],
-      reminderData['description'],
-      tz.TZDateTime.from(scheduledTime, tz.local),
-    );
+    final reminder = Reminder.fromMap(doc.data());
+
+    if (reminder.timestamp != null) {
+      await NotificationService().scheduleNotification(
+        reminder,
+      );
+    }
   }
 }
 
@@ -106,7 +98,10 @@ class ReminderApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(debugShowCheckedModeBanner: false, home: HomeScreen());
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: HomeScreen(),
+    );
   }
 }
 
@@ -123,13 +118,11 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-
     _checkEmailSet();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        checkAndRequestNotificationAccess(
-            context); // ✅ Context is now safe to use
+        checkAndRequestNotificationAccess(context);
       }
     });
   }
@@ -146,7 +139,7 @@ class HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "Reminder",
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
@@ -154,10 +147,7 @@ class HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.greenAccent,
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Image.asset(
-            'assets/logo.png',
-            height: 40,
-          ),
+          child: Image.asset('assets/logo.png', height: 40),
         ),
         actions: [
           IconButton(
@@ -165,7 +155,7 @@ class HomeScreenState extends State<HomeScreen> {
             onPressed: () async {
               await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => SettingsScreen()),
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
               _checkEmailSet();
             },
@@ -187,7 +177,7 @@ class HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Colors.lightBlueAccent, Colors.lightBlueAccent],
             begin: Alignment.topLeft,
@@ -206,12 +196,11 @@ class HomeScreenState extends State<HomeScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AddReminderScreen(),
-                    ),
+                        builder: (context) => const AddReminderScreen()),
                   );
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               _buildButton(
                 icon: Icons.list_alt,
                 label: "View Reminders",
@@ -220,8 +209,7 @@ class HomeScreenState extends State<HomeScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ViewRemindersScreen(),
-                    ),
+                        builder: (context) => const ViewRemindersScreen()),
                   );
                 },
               ),
@@ -242,10 +230,10 @@ class HomeScreenState extends State<HomeScreen> {
       icon: Icon(icon, color: Colors.white),
       label: Text(
         label,
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
       ),
       style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
         backgroundColor: color,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         elevation: 8,
@@ -254,17 +242,19 @@ class HomeScreenState extends State<HomeScreen> {
       onPressed: onPressed,
     );
   }
-}
 
   void _refreshReminders(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
       await fetchAndScheduleReminders();
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('🔄 Reminders refreshed')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('⚠️ Failed to refresh: $e')),
       );
     }
   }
+}

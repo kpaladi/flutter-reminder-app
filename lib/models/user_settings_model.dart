@@ -1,4 +1,4 @@
-// lib/models/user_settings.dart
+// lib/models/user_settings_model.dart
 class UserSettings {
   final String email;
   final bool emailEnabled;

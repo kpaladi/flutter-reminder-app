@@ -11,30 +11,30 @@ Future<void> initializeNotifications([
   try {
     debugPrint("🚀 Initializing Notifications...");
 
-    const AndroidInitializationSettings androidSettings =
-    AndroidInitializationSettings('ic_notification');
+    // Setup for Android notifications
+    const androidSettings = AndroidInitializationSettings('ic_notification');
+    final initializationSettings = InitializationSettings(android: androidSettings);
 
-    final InitializationSettings settings = InitializationSettings(
-      android: androidSettings,
-    );
+    // Default action when notification is tapped
+    final didReceiveResponse = onNotificationResponse ?? (NotificationResponse response) {
+      final payload = response.payload;
+      debugPrint("🔔 Notification clicked: $payload");
 
-    final bool initSuccess =
-        (await flutterLocalNotificationsPlugin.initialize(
-          settings,
-          onDidReceiveNotificationResponse: onNotificationResponse ??
-                  (NotificationResponse response) {
-                debugPrint("🔔 Notification clicked: ${response.payload}");
-                if (response.actionId != null &&
-                    response.actionId!.startsWith('snooze_action')) {
-                  handleSnooze(response.payload);
-                }
-              },
-        )) ??
-            false;
+      final actionId = response.actionId;
+      if (actionId != null && actionId.startsWith('snooze_action')) {
+        handleSnooze(payload);
+      }
+    };
+
+    final initSuccess = (await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: didReceiveResponse,
+    )) ?? false;
 
     debugPrint("✅ Notifications initialized: $initSuccess");
 
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    // Create Android notification channel
+    const channel = AndroidNotificationChannel(
       'reminder_channel_darahaas_v3',
       'Reminders',
       description: 'Channel for reminder notifications',
@@ -42,11 +42,8 @@ Future<void> initializeNotifications([
       sound: RawResourceAndroidNotificationSound('notification_ringtone'),
     );
 
-    final androidPlugin =
-    flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin
-    >();
+    final androidPlugin = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(channel);
@@ -55,10 +52,13 @@ Future<void> initializeNotifications([
       debugPrint("⚠️ Android plugin not found, skipping channel creation");
     }
 
+    // Set time zone
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
     debugPrint("✅ Time zones initialized");
-  } catch (e) {
+
+  } catch (e, stackTrace) {
     debugPrint("❌ Error initializing notifications: $e");
+    debugPrint("🪵 StackTrace: $stackTrace");
   }
 }

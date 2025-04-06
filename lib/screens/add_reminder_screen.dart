@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:reminder_app/services/notification_service.dart';
+import '../models/reminder_model.dart';
 
 class AddReminderScreen extends StatefulWidget {
   const AddReminderScreen({super.key});
 
   @override
   AddReminderScreenState createState() => AddReminderScreenState();
-
-
 }
 
 class AddReminderScreenState extends State<AddReminderScreen> {
@@ -40,21 +39,23 @@ class AddReminderScreenState extends State<AddReminderScreen> {
       return;
     }
 
-    DocumentReference docRef = await FirebaseFirestore.instance
-        .collection('reminders')
-        .add({
-          'title': titleController.text,
-          'description': descriptionController.text,
-          'timestamp': selectedDateTime,
-        });
+    // Step 1: Create a new document reference with auto ID
+    DocumentReference docRef =
+    FirebaseFirestore.instance.collection('reminders').doc();
 
-    // Schedule Notification
-    NotificationService().scheduleNotification(
-      docRef.id.hashCode, // Convert Firestore ID to int hash
-      titleController.text,
-      descriptionController.text,
-      selectedDateTime!,
+    // Step 2: Construct Reminder with generated ID
+    final reminder = Reminder(
+      id: docRef.id,
+      title: titleController.text.trim(),
+      description: descriptionController.text.trim(),
+      timestamp: selectedDateTime!,
     );
+
+    // Step 3: Save to Firestore
+    await docRef.set(reminder.toMap());
+
+    // Step 4: Schedule Notification using model's notificationId getter
+    NotificationService().scheduleNotification(reminder);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -62,7 +63,7 @@ class AddReminderScreenState extends State<AddReminderScreen> {
       );
     }
 
-    // Clear inputs
+    // Step 5: Clear inputs
     titleController.clear();
     descriptionController.clear();
     setState(() {
@@ -100,26 +101,25 @@ class AddReminderScreenState extends State<AddReminderScreen> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Add Reminder")),
+      appBar: AppBar(title: const Text("Add Reminder")),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               textCapitalization: TextCapitalization.sentences,
               controller: titleController,
-              decoration: InputDecoration(labelText: "Title"),
+              decoration: const InputDecoration(labelText: "Title"),
             ),
             TextField(
               textCapitalization: TextCapitalization.sentences,
               controller: descriptionController,
-              decoration: InputDecoration(labelText: "Description"),
+              decoration: const InputDecoration(labelText: "Description"),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: pickDateTime,
               child: Text(
@@ -128,11 +128,11 @@ class AddReminderScreenState extends State<AddReminderScreen> {
                     : "Selected: ${selectedDateTime!.toLocal().toString()}",
               ),
             ),
-            SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: hasChanges ? addReminder : null,
-          child: Text("Add Reminder"),
-        ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: hasChanges ? addReminder : null,
+              child: const Text("Add Reminder"),
+            ),
           ],
         ),
       ),

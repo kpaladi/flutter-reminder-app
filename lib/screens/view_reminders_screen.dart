@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-
+import '../models/reminder_model.dart'; // ✅ Using updated Reminder model
 import '../services/notification_service.dart';
 import 'edit_reminder_screen.dart';
 import 'package:csv/csv.dart';
@@ -20,62 +19,40 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final NotificationService _notificationService = NotificationService();
 
-  @override
-  void initState() {
-    super.initState();
+  void scheduleNotification(String reminderId, Reminder reminder) {
+    _notificationService.scheduleNotification(reminder);
   }
 
-  void scheduleNotification(
-      String reminderId,
-      Map<String, dynamic> reminderData,
-      ) {
-    if (reminderData['timestamp'] is Timestamp) {
-      DateTime scheduledTime = (reminderData['timestamp'] as Timestamp).toDate();
-      int notificationId = generateUniqueId(reminderId);
+  void _editReminder(String reminderId, Reminder reminder) async {
+    final scaffoldContext = context; // capture early
 
-      _notificationService.scheduleNotification(
-        notificationId,
-        reminderData['title'] ?? 'Reminder',
-        reminderData['description'] ?? 'You have a reminder!',
-        scheduledTime,
-      );
-    }
-  }
-
-  int generateUniqueId(String reminderId) => reminderId.hashCode;
-
-  void _editReminder(String reminderId, Map<String, dynamic> reminderData) async {
-    DateTime? reminderDateTime;
-    if (reminderData['timestamp'] is Timestamp) {
-      reminderDateTime = (reminderData['timestamp'] as Timestamp).toDate();
-    }
-
-    final updatedReminder = await Navigator.push(
-      context,
+    final updatedReminder = await Navigator.push<Reminder>(
+      scaffoldContext,
       MaterialPageRoute(
         builder: (context) => EditReminderScreen(
-          reminderId: reminderId,
-          reminderData: {...reminderData, 'timestamp': reminderDateTime},
+          reminder: reminder,
         ),
       ),
     );
 
     if (updatedReminder != null) {
-      await _db.collection("reminders").doc(reminderId).update(updatedReminder);
-      await _notificationService.cancelNotification(reminderId.hashCode);
-      scheduleNotification(reminderId, updatedReminder);
+      await NotificationService().cancelNotification(reminderId);
+      await NotificationService().scheduleNotification(updatedReminder);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Reminder updated')),
+        );
+      }
+
+      setState(() {
+        // update UI
+      });
     }
   }
 
-  String _formatTimestamp(dynamic timestamp) {
-    if (timestamp == null) return "No Date";
-    if (timestamp is Timestamp) {
-      return DateFormat('dd-MM-yyyy HH:mm').format(timestamp.toDate());
-    } else if (timestamp is DateTime) {
-      return DateFormat('dd-MM-yyyy HH:mm').format(timestamp);
-    }
-    return "Invalid Date";
-  }
+
+
 
   void _confirmDeleteReminder(String reminderId) {
     showDialog(
@@ -105,7 +82,7 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
   Future<void> _deleteReminder(String reminderId) async {
     try {
       await _db.collection("reminders").doc(reminderId).delete();
-      await _notificationService.cancelNotification(reminderId.hashCode);
+      await _notificationService.cancelNotification(reminderId);
     } catch (e) {
       debugPrint("Error deleting reminder: $e");
     }
@@ -113,36 +90,26 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
 
   Future<void> _exportReminders(List<QueryDocumentSnapshot> reminders) async {
     try {
-      // Convert reminders to CSV rows
       List<List<dynamic>> csvData = [
         ['Title', 'Description', 'Timestamp']
       ];
 
       for (var doc in reminders) {
-        var data = doc.data() as Map<String, dynamic>;
-        String title = data['title'] ?? '';
-        String description = data['description'] ?? '';
-        String timestamp = '';
-
-        if (data['timestamp'] is Timestamp) {
-          timestamp = (data['timestamp'] as Timestamp)
-              .toDate()
-              .toString(); // or format if needed
-        }
-
-        csvData.add([title, description, timestamp]);
+        Reminder reminder = Reminder.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+        csvData.add([
+          reminder.title,
+          reminder.description,
+          reminder.timestamp != null
+              ? DateFormat('yyyy-MM-dd HH:mm:ss').format(reminder.timestamp!)
+              : '',
+        ]);
       }
 
       String csv = const ListToCsvConverter().convert(csvData);
-
-      // Get safe app-specific external directory
       final dir = await getExternalStorageDirectory();
 
-      if (dir == null) {
-        throw Exception("Storage directory not available");
-      }
+      if (dir == null) throw Exception("Storage directory not available");
 
-      // Write to file
       final file = File('${dir.path}/reminders_export.csv');
       await file.writeAsString(csv);
 
@@ -159,7 +126,13 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
     }
   }
 
+  String _formatTimestamp(DateTime timestamp) {
+    return DateFormat('dd-MM-yyyy HH:mm').format(timestamp);
+  }
 
+  Reminder _mapDocToReminder(QueryDocumentSnapshot doc) {
+    return Reminder.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -168,9 +141,7 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
       body: StreamBuilder<QuerySnapshot>(
         stream: _db.collection("reminders").snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          }
+          if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
 
           var reminders = snapshot.data!.docs;
 
@@ -178,14 +149,12 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
             padding: EdgeInsets.all(12),
             itemCount: reminders.length,
             itemBuilder: (context, index) {
-              var reminder = reminders[index];
-              var reminderData = reminder.data() as Map<String, dynamic>;
+              var doc = reminders[index];
+              Reminder reminder = _mapDocToReminder(doc);
 
               return Card(
                 elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 margin: EdgeInsets.only(bottom: 10),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
@@ -193,15 +162,12 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        reminderData['title'] ?? 'No Title',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        reminder.title,
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 4),
                       Text(
-                        reminderData['description'] ?? 'No Description',
+                        reminder.description,
                         style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                       ),
                       SizedBox(height: 6),
@@ -209,21 +175,20 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            _formatTimestamp(reminderData['timestamp']),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.red[500],
-                            ),
+                            reminder.timestamp != null
+                                ? _formatTimestamp(reminder.timestamp!)
+                                : "No time set",
+                            style: TextStyle(fontSize: 12, color: Colors.red[500]),
                           ),
                           Row(
                             children: [
                               IconButton(
                                 icon: Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _editReminder(reminder.id, reminderData),
+                                onPressed: () => _editReminder(doc.id, reminder),
                               ),
                               IconButton(
                                 icon: Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _confirmDeleteReminder(reminder.id),
+                                onPressed: () => _confirmDeleteReminder(doc.id),
                               ),
                             ],
                           ),
