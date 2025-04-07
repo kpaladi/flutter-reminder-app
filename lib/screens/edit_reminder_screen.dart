@@ -248,7 +248,7 @@ class EditReminderScreenState extends State<EditReminderScreen> {
                               _checkForChanges();
                             });
                           },
-                          items: <String>['only once', 'day', 'week', 'month']
+                          items: <String>['only once', 'day', 'week', 'month', 'year']
                               .map((String value) => DropdownMenuItem(
                             value: value,
                             child: Text(value),

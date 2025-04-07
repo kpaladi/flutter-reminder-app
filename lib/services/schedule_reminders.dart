@@ -42,6 +42,7 @@ Future<void> scheduleAllReminders(BuildContext context) async {
             step = Duration(days: 7 * interval);
             break;
           case 'month':
+          case 'year':
             step = null; // handled differently below
             break;
           default:
@@ -58,7 +59,21 @@ Future<void> scheduleAllReminders(BuildContext context) async {
           scheduledCount++;
 
           if (repeatType == 'month') {
-            occurrence = DateTime(occurrence.year, occurrence.month + interval, occurrence.day, occurrence.hour, occurrence.minute);
+            occurrence = DateTime(
+              occurrence.year,
+              occurrence.month + interval,
+              occurrence.day,
+              occurrence.hour,
+              occurrence.minute,
+            );
+          } else if (repeatType == 'year') {
+            occurrence = DateTime(
+              occurrence.year + interval,
+              occurrence.month,
+              occurrence.day,
+              occurrence.hour,
+              occurrence.minute,
+            );
           } else {
             occurrence = occurrence.add(step!);
           }

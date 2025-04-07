@@ -187,7 +187,7 @@ class AddReminderScreenState extends State<AddReminderScreen> {
                                 _onFormChanged();
                               });
                             },
-                            items: <String>['only once', 'day', 'week', 'month']
+                            items: <String>['only once', 'day', 'week', 'month', 'year']
                                 .map<DropdownMenuItem<String>>((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,

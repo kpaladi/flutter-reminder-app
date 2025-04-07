@@ -41,6 +41,8 @@ class NotificationService {
       matchComponents = DateTimeComponents.dayOfWeekAndTime;
     } else if (repeatType == 'month') {
       matchComponents = DateTimeComponents.dayOfMonthAndTime;
+    } else if (repeatType == 'year') {
+      matchComponents = DateTimeComponents.dateAndTime;
     }
 
     await flutterLocalNotificationsPlugin.zonedSchedule(

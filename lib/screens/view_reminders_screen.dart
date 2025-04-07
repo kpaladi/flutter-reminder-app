@@ -211,6 +211,7 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
             'Daily': [],
             'Weekly': [],
             'Monthly': [],
+            'Yearly': [],
             'Others': [],
           };
 
@@ -226,6 +227,8 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
               groupedReminders['Weekly']!.add(reminder);
             } else if (type == 'month') {
               groupedReminders['Monthly']!.add(reminder);
+            } else if (type == 'year') {
+              groupedReminders['Yearly']!.add(reminder);
             } else {
               groupedReminders['Others']!.add(reminder);
             }
