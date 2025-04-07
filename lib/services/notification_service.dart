@@ -25,11 +25,29 @@ class NotificationService {
   Future<void> scheduleNotification(Reminder reminder) async {
     final int notifId = reminder.id.hashCode;
 
+    final scheduledTime = tz.TZDateTime.from(
+      reminder.timestamp ?? DateTime.now(),
+      tz.local,
+    );
+
+    final repeatType = reminder.repeatType?.toLowerCase();
+    final interval = reminder.repeatInterval ?? 1;
+
+    DateTimeComponents? matchComponents;
+
+    if (repeatType == 'day') {
+      matchComponents = DateTimeComponents.time;
+    } else if (repeatType == 'week') {
+      matchComponents = DateTimeComponents.dayOfWeekAndTime;
+    } else if (repeatType == 'month') {
+      matchComponents = DateTimeComponents.dayOfMonthAndTime;
+    }
+
     await flutterLocalNotificationsPlugin.zonedSchedule(
       notifId,
       reminder.title,
       reminder.description,
-      tz.TZDateTime.from(reminder.timestamp ?? DateTime.now(), tz.local),
+      scheduledTime,
       NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
@@ -53,14 +71,14 @@ class NotificationService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.dateAndTime,
+      matchDateTimeComponents: matchComponents,
       payload: '${reminder.id}|${reminder.title}|${reminder.description}',
     );
 
-
-    debugPrint("📅 Scheduled reminder ID: ${reminder.id} at ${reminder.timestamp}");
+    debugPrint("📅 Scheduled reminder ID: ${reminder.id} at $scheduledTime (repeat: $repeatType every $interval)");
     await _saveScheduledReminder(reminder.id);
   }
+
 
   Future<void> cancelNotification(String reminderId) async {
     final int notificationId = reminderId.hashCode;

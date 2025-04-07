@@ -17,26 +17,66 @@ class EditReminderScreenState extends State<EditReminderScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
+  late TextEditingController _repeatIntervalController;
+
   DateTime? _selectedDateTime;
+  String? _repeatType;
+  int? _repeatInterval;
+  DateTime? _repeatEnd;
   bool _hasChanges = false;
+
+  late String _initialTitle;
+  late String _initialDescription;
+  late DateTime? _initialTimestamp;
+  String? _initialRepeatType;
+  int? _initialRepeatInterval;
+  DateTime? _initialRepeatEnd;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.reminder.title);
     _descriptionController = TextEditingController(text: widget.reminder.description);
+    _repeatIntervalController = TextEditingController(
+      text: (widget.reminder.repeatInterval ?? 1).toString(),
+    );
+
     _selectedDateTime = widget.reminder.timestamp;
+    _repeatType = widget.reminder.repeatType ?? 'only once';
+    _repeatInterval = widget.reminder.repeatInterval ?? 1;
+    _repeatEnd = widget.reminder.repeatEnd;
+
+    _initialTitle = widget.reminder.title;
+    _initialDescription = widget.reminder.description;
+    _initialTimestamp = widget.reminder.timestamp;
+    _initialRepeatType = _repeatType;
+    _initialRepeatInterval = _repeatInterval;
+    _initialRepeatEnd = _repeatEnd;
 
     _titleController.addListener(_checkForChanges);
     _descriptionController.addListener(_checkForChanges);
+    _repeatIntervalController.addListener(_onRepeatIntervalChanged);
+  }
+
+  void _onRepeatIntervalChanged() {
+    final val = int.tryParse(_repeatIntervalController.text.trim());
+    if (val != null && val != _repeatInterval) {
+      setState(() {
+        _repeatInterval = val;
+        _checkForChanges();
+      });
+    }
   }
 
   void _checkForChanges() {
-    setState(() {
-      _hasChanges = _titleController.text != widget.reminder.title ||
-          _descriptionController.text != widget.reminder.description ||
-          _selectedDateTime != widget.reminder.timestamp;
-    });
+    _hasChanges =
+        _titleController.text != _initialTitle ||
+            _descriptionController.text != _initialDescription ||
+            _selectedDateTime != _initialTimestamp ||
+            _repeatType != _initialRepeatType ||
+            (_repeatType != 'only once' && _repeatInterval != _initialRepeatInterval) ||
+            (_repeatType != 'only once' && _repeatEnd != _initialRepeatEnd);
+    setState(() {});
   }
 
   Future<void> _pickDateTime() async {
@@ -46,14 +86,12 @@ class EditReminderScreenState extends State<EditReminderScreen> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-
     if (!mounted || pickedDate == null) return;
 
     TimeOfDay? pickedTime = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_selectedDateTime ?? DateTime.now()),
     );
-
     if (!mounted || pickedTime == null) return;
 
     setState(() {
@@ -64,6 +102,21 @@ class EditReminderScreenState extends State<EditReminderScreen> {
         pickedTime.hour,
         pickedTime.minute,
       );
+      _checkForChanges();
+    });
+  }
+
+  Future<void> _pickRepeatEndDate() async {
+    DateTime? pickedEndDate = await showDatePicker(
+      context: context,
+      initialDate: _repeatEnd ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2101),
+    );
+    if (!mounted || pickedEndDate == null) return;
+
+    setState(() {
+      _repeatEnd = pickedEndDate;
       _checkForChanges();
     });
   }
@@ -82,9 +135,12 @@ class EditReminderScreenState extends State<EditReminderScreen> {
 
     Reminder updated = Reminder(
       id: widget.reminder.id,
-      title: _titleController.text,
-      description: _descriptionController.text,
-      timestamp: _selectedDateTime,
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      timestamp: _selectedDateTime!,
+      repeatType: _repeatType,
+      repeatInterval: _repeatType != 'only once' ? _repeatInterval : null,
+      repeatEnd: _repeatType != 'only once' ? _repeatEnd : null,
     );
 
     await FirebaseFirestore.instance
@@ -101,29 +157,47 @@ class EditReminderScreenState extends State<EditReminderScreen> {
     }
 
     setState(() {
+      _initialTitle = _titleController.text;
+      _initialDescription = _descriptionController.text;
+      _initialTimestamp = _selectedDateTime!;
+      _initialRepeatType = _repeatType;
+      _initialRepeatInterval = _repeatInterval;
+      _initialRepeatEnd = _repeatEnd;
       _hasChanges = false;
     });
   }
 
   void _resetChanges() {
+    final r = widget.reminder;
     setState(() {
-      _titleController.text = widget.reminder.title;
-      _descriptionController.text = widget.reminder.description;
-      _selectedDateTime = widget.reminder.timestamp;
+      _titleController.text = r.title;
+      _descriptionController.text = r.description;
+      _selectedDateTime = r.timestamp;
+      _repeatType = r.repeatType ?? 'only once';
+      _repeatInterval = r.repeatInterval ?? 1;
+      _repeatIntervalController.text = _repeatInterval.toString();
+      _repeatEnd = r.repeatEnd;
       _hasChanges = false;
     });
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _repeatIntervalController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Edit Reminder")),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextFormField(
                 controller: _titleController,
@@ -157,6 +231,49 @@ class EditReminderScreenState extends State<EditReminderScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 20),
+              if (_selectedDateTime != null)
+                Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("Repeat Type", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 20),
+                        DropdownButton<String>(
+                          value: _repeatType,
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _repeatType = newValue!;
+                              _checkForChanges();
+                            });
+                          },
+                          items: <String>['only once', 'day', 'week', 'month']
+                              .map((String value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(value),
+                          ))
+                              .toList(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (_repeatType != 'only once')
+                      TextFormField(
+                        controller: _repeatIntervalController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: "Repeat Interval"),
+                      ),
+                    const SizedBox(height: 10),
+                    if (_repeatType != 'only once')
+                      ElevatedButton(
+                        onPressed: _pickRepeatEndDate,
+                        child: Text(_repeatEnd == null
+                            ? "Select Repeat End Date"
+                            : "Repeat Ends: ${DateFormat('dd-MM-yyyy').format(_repeatEnd!)}"),
+                      ),
+                  ],
+                ),
               const SizedBox(height: 20),
               Row(
                 children: [
