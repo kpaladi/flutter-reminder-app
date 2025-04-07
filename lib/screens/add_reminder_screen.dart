@@ -1,7 +1,12 @@
+
+import 'package:csv/csv.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:reminder_app/services/notification_service.dart';
 import '../models/reminder_model.dart';
+
+
 
 class AddReminderScreen extends StatefulWidget {
   const AddReminderScreen({super.key});
@@ -13,12 +18,9 @@ class AddReminderScreen extends StatefulWidget {
 class AddReminderScreenState extends State<AddReminderScreen> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
-  final TextEditingController repeatIntervalController = TextEditingController(text: '1');
 
   DateTime? selectedDateTime;
   String? repeatType = 'only once';
-  int? repeatInterval = 1;
-  DateTime? repeatEnd;
 
   bool hasChanges = false;
 
@@ -27,7 +29,6 @@ class AddReminderScreenState extends State<AddReminderScreen> {
     super.initState();
     titleController.addListener(_onFormChanged);
     descriptionController.addListener(_onFormChanged);
-    repeatIntervalController.addListener(_onFormChanged);
   }
 
   void _onFormChanged() {
@@ -35,9 +36,7 @@ class AddReminderScreenState extends State<AddReminderScreen> {
       hasChanges = titleController.text.isNotEmpty ||
           descriptionController.text.isNotEmpty ||
           selectedDateTime != null ||
-          repeatType != 'only once' ||
-          (int.tryParse(repeatIntervalController.text) ?? 1) != 1 ||
-          repeatEnd != null;
+          repeatType != 'only once';
     });
   }
 
@@ -51,16 +50,12 @@ class AddReminderScreenState extends State<AddReminderScreen> {
     DocumentReference docRef =
     FirebaseFirestore.instance.collection('reminders').doc();
 
-    repeatInterval = int.tryParse(repeatIntervalController.text) ?? 1;
-
     final reminder = Reminder(
       id: docRef.id,
       title: titleController.text.trim(),
       description: descriptionController.text.trim(),
       timestamp: selectedDateTime!,
       repeatType: repeatType,
-      repeatInterval: repeatInterval,
-      repeatEnd: repeatEnd,
     );
 
     await docRef.set(reminder.toMap());
@@ -75,12 +70,9 @@ class AddReminderScreenState extends State<AddReminderScreen> {
 
     titleController.clear();
     descriptionController.clear();
-    repeatIntervalController.text = '1';
     setState(() {
       selectedDateTime = null;
       repeatType = 'only once';
-      repeatInterval = 1;
-      repeatEnd = null;
       hasChanges = false;
     });
   }
@@ -114,26 +106,102 @@ class AddReminderScreenState extends State<AddReminderScreen> {
     });
   }
 
-  void pickRepeatEndDate() async {
-    DateTime? pickedEndDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2101),
-    );
 
-    if (!mounted || pickedEndDate == null) return;
 
-    setState(() {
-      repeatEnd = pickedEndDate;
-      _onFormChanged();
-    });
+  Future<void> importFromCsv(BuildContext context) async {
+    try {
+      const XTypeGroup typeGroup = XTypeGroup(
+        label: 'CSV',
+        extensions: ['csv'],
+      );
+
+      final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
+      if (file == null) return;
+
+      final input = await file.readAsString();
+      final rows = const CsvToListConverter().convert(input);
+
+      if (rows.isEmpty || rows[0].length < 3) {
+        throw FormatException('Invalid CSV structure');
+      }
+
+      int addedCount = 0;
+      int duplicateCount = 0; // 👈 New
+
+      for (int i = 1; i < rows.length; i++) {
+        final row = rows[i];
+        final title = row[0]?.toString() ?? '';
+        final description = row[1]?.toString() ?? '';
+        final timestampStr = row[2]?.toString() ?? '';
+        final repeatType = row.length > 3 ? row[3]?.toString() : 'only once';
+
+        if (title.isEmpty || timestampStr.isEmpty) continue;
+        final timestamp = DateTime.tryParse(timestampStr);
+        if (timestamp == null) continue;
+
+        // 🔍 Check for duplicate
+        final query = await FirebaseFirestore.instance
+            .collection('reminders')
+            .where('title', isEqualTo: title)
+            .where('timestamp', isEqualTo: Timestamp.fromDate(timestamp))
+            .get();
+
+        if (query.docs.isNotEmpty) {
+          duplicateCount++; // 👈 Count duplicate
+          continue;
+        }
+
+        final reminder = Reminder(
+          id: '',
+          title: title,
+          description: description,
+          timestamp: timestamp,
+          repeatType: repeatType,
+        );
+
+        await FirebaseFirestore.instance.collection('reminders').add(reminder.toMap());
+        addedCount++;
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("✅ Imported $addedCount reminders, ignored $duplicateCount duplicates"),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("❌ Import failed: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ Import failed")),
+        );
+      }
+    }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Add Reminder")),
+      appBar: AppBar(title: Text("Add Reminder"),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'import') {
+                importFromCsv(context);
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem<String>(
+                value: 'import',
+                child: Text('Import from CSV'),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -171,14 +239,6 @@ class AddReminderScreenState extends State<AddReminderScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: TextField(
-                            controller: repeatIntervalController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(labelText: "Interval"),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
                           child: DropdownButtonFormField<String>(
                             value: repeatType,
                             onChanged: (String? newValue) {
@@ -199,16 +259,6 @@ class AddReminderScreenState extends State<AddReminderScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    if (repeatType != 'only once')
-                      ElevatedButton(
-                        onPressed: pickRepeatEndDate,
-                        child: Text(
-                          repeatEnd == null
-                              ? "Select Repeat End Date"
-                              : "Repeat Ends: ${repeatEnd!.toLocal().toString()}",
-                        ),
-                      ),
                   ],
                 ),
               const SizedBox(height: 20),

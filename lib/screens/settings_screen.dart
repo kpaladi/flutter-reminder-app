@@ -138,15 +138,23 @@ class SettingsScreenState extends State<SettingsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: _isSaveEnabled ? _saveSettings : null,
-                  child: Text("Save Settings"),
+                  icon: Icon(Icons.save),
+                  label: Text("Save Settings"),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
                 ),
-                TextButton(
+                ElevatedButton.icon(
                   onPressed: (_isSaveEnabled || _emailController.text != _initialEmail || _isEmailEnabled != _initialEmailEnabled)
                       ? _resetToInitialValues
                       : null,
-                  child: Text("Reset"),
+                  icon: Icon(Icons.restore),
+                  label: Text("Reset"),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
                 ),
               ],
             ),

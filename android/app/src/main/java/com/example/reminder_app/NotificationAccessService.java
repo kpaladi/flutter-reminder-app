@@ -1,8 +1,11 @@
 package com.example.reminder_app;
 
 import android.content.Intent;
+import android.os.Build;
+import android.os.Environment;
 import android.provider.Settings;
 import android.content.Context;
+import android.net.Uri;
 
 import androidx.annotation.NonNull;
 
@@ -28,13 +31,23 @@ public class NotificationAccessService implements MethodCallHandler {
 
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
-        if ("isNotificationAccessEnabled".equals(call.method)) {
-            result.success(isNotificationServiceEnabled(context));
-        } else if ("openNotificationAccessSettings".equals(call.method)) {
-            openNotificationAccessSettings(context);
-            result.success(true);
-        } else {
-            result.notImplemented();
+        switch (call.method) {
+            case "isNotificationAccessEnabled":
+                result.success(isNotificationServiceEnabled(context));
+                break;
+            case "openNotificationAccessSettings":
+                openNotificationAccessSettings(context);
+                result.success(true);
+                break;
+            case "isAllFilesAccessGranted":
+                result.success(isAllFilesAccessGranted());
+                break;
+            case "openAllFilesAccessSettings":
+                openAllFilesAccessSettings();
+                result.success(true);
+                break;
+            default:
+                result.notImplemented();
         }
     }
 
@@ -44,7 +57,6 @@ public class NotificationAccessService implements MethodCallHandler {
                 context.getContentResolver(),
                 "enabled_notification_listeners"
         );
-
         return flat != null && flat.contains(pkgName);
     }
 
@@ -53,9 +65,20 @@ public class NotificationAccessService implements MethodCallHandler {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
     }
+
+    private boolean isAllFilesAccessGranted() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return Environment.isExternalStorageManager();
+        }
+        return true; // assume true for Android 10 and below
+    }
+
+    private void openAllFilesAccessSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+            intent.setData(Uri.parse("package:" + context.getPackageName()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        }
+    }
 }
-
-
-
-
-

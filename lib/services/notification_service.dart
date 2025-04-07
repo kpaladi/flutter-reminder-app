@@ -31,7 +31,6 @@ class NotificationService {
     );
 
     final repeatType = reminder.repeatType?.toLowerCase();
-    final interval = reminder.repeatInterval ?? 1;
 
     DateTimeComponents? matchComponents;
 
@@ -77,7 +76,7 @@ class NotificationService {
       payload: '${reminder.id}|${reminder.title}|${reminder.description}',
     );
 
-    debugPrint("📅 Scheduled reminder ID: ${reminder.id} at $scheduledTime (repeat: $repeatType every $interval)");
+    debugPrint("📅 Scheduled reminder ID: ${reminder.id} at $scheduledTime (repeat: $repeatType)");
     await _saveScheduledReminder(reminder.id);
   }
 

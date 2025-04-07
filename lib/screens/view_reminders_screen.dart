@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +9,9 @@ import '../services/notification_service.dart';
 import 'edit_reminder_screen.dart';
 import 'package:csv/csv.dart';
 import 'package:sticky_headers/sticky_headers.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+import 'package:flutter/services.dart';
 
 class ViewRemindersScreen extends StatefulWidget {
   const ViewRemindersScreen({super.key});
@@ -76,42 +80,110 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
     }
   }
 
-  Future<void> _exportReminders(List<QueryDocumentSnapshot> reminders) async {
+  static const MethodChannel _platform = MethodChannel('notification_access_channel');
+
+  Future<void> checkAndRequestAllFilesAccess(BuildContext context) async {
     try {
+      final bool isGranted = await _platform.invokeMethod('isAllFilesAccessGranted');
+
+      if (isGranted) {
+        debugPrint("✅ All files access already granted.");
+        return;
+      }
+
+      if (!context.mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Storage Permission Required"),
+          content: const Text(
+            "This app needs access to manage all files to import/export reminders.\n\n"
+                "Please grant this in system settings.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                try {
+                  await _platform.invokeMethod('openAllFilesAccessSettings');
+                } catch (e) {
+                  debugPrint("⚠️ Failed to open All Files Access settings: $e");
+                }
+              },
+              child: const Text("Grant Access"),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      debugPrint("❌ Error checking All Files Access: $e");
+    }
+  }
+
+
+
+
+  Future<void> exportRemindersToDownloads(BuildContext context, List<QueryDocumentSnapshot> reminders) async {
+    try {
+      // Request manage external storage permission
+      // ToDo: The below permission is working only due to special access I have manually granted on the device.
+      var status = await Permission.manageExternalStorage.request();
+      if (!status.isGranted) {
+        debugPrint("❌ Storage permission denied");
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('❌ Storage permission denied')),
+          );
+        }
+        return;
+      }
+
+      // Prepare CSV data
       List<List<dynamic>> csvData = [
-        ['Title', 'Description', 'Timestamp']
+        ['Title', 'Description', 'Timestamp', 'Repeat Type']
       ];
 
       for (var doc in reminders) {
-        Reminder reminder = Reminder.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+        final reminder = Reminder.fromMap(doc.data() as Map<String, dynamic>, doc.id);
         csvData.add([
           reminder.title,
           reminder.description,
           reminder.timestamp != null
               ? DateFormat('yyyy-MM-dd HH:mm:ss').format(reminder.timestamp!)
               : '',
+          reminder.repeatType ?? 'only once',
         ]);
       }
 
-      String csv = const ListToCsvConverter().convert(csvData);
-      final dir = await getExternalStorageDirectory();
-      if (dir == null) throw Exception("Storage directory not available");
+      final csv = const ListToCsvConverter().convert(csvData);
 
-      final file = File('${dir.path}/reminders_export.csv');
+      // Save to Downloads directory
+      final downloadsDir = Directory('/storage/emulated/0/Download');
+      final file = File('${downloadsDir.path}/remindersexport.csv');
       await file.writeAsString(csv);
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exported to ${file.path}')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('✅ Exported to ${file.path}')),
+        );
+      }
     } catch (e) {
-      debugPrint("Export failed: $e");
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Export failed')),
-      );
+      debugPrint('❌ Export failed: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Export failed')),
+        );
+      }
     }
   }
+
+
+
 
   String _formatDate(DateTime? date) {
     if (date == null) return '';
@@ -130,14 +202,12 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
       return "Reminder at $time on $date";
     }
 
-    final interval = r.repeatInterval ?? 1;
     final type = r.repeatType!;
-    final every = interval == 1 ? "every $type" : "every $interval ${type}s";
+    final every = "every $type";
     final start = _formatDate(r.timestamp!);
     final time = _formatTime(r.timestamp!);
-    final end = r.repeatEnd != null ? " till ${_formatDate(r.repeatEnd)}" : "";
 
-    return "Reminder $every at $time, from $start$end";
+    return "Reminder $every at $time, from $start";
   }
 
 
@@ -276,7 +346,7 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
         stream: _db.collection("reminders").snapshots(),
         builder: (context, snapshot) {
           return FloatingActionButton(
-            onPressed: snapshot.hasData ? () => _exportReminders(snapshot.data!.docs) : null,
+            onPressed: snapshot.hasData ? () => exportRemindersToDownloads(context, snapshot.data!.docs) : null,
             tooltip: 'Export Reminders',
             child: Icon(Icons.download),
           );

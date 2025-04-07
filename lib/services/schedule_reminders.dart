@@ -20,64 +20,17 @@ Future<void> scheduleAllReminders(BuildContext context) async {
     if (data['timestamp'] != null) {
       final reminder = Reminder.fromMap(data, doc.id);
 
-      // If there's no repeat type or it is "only once", schedule as one-time
       if (reminder.repeatType == null || reminder.repeatType == 'only once') {
+        // One-time reminder
         await NotificationService().scheduleNotification(reminder);
         debugPrint("📅 One-time: '${reminder.title}' at ${DateFormat('dd-MM-yyyy HH:mm').format(reminder.timestamp!)}");
         scheduledCount++;
       } else {
-        // Handle repeating reminders
-        final now = DateTime.now();
-        final start = reminder.timestamp!;
-        final end = reminder.repeatEnd ?? now.add(Duration(days: 30)); // fallback: 30 days from now
-        final interval = reminder.repeatInterval ?? 1;
-        final repeatType = reminder.repeatType!;
-
-        Duration? step;
-        switch (repeatType) {
-          case 'day':
-            step = Duration(days: interval);
-            break;
-          case 'week':
-            step = Duration(days: 7 * interval);
-            break;
-          case 'month':
-          case 'year':
-            step = null; // handled differently below
-            break;
-          default:
-            debugPrint("⚠️ Unknown repeat type: $repeatType");
-            continue;
-        }
-
-        DateTime occurrence = start;
-
-        while (occurrence.isBefore(end) || occurrence.isAtSameMomentAs(end)) {
-          final instance = reminder.copyWith(timestamp: occurrence);
-          await NotificationService().scheduleNotification(instance);
-          debugPrint("🔁 Repeated: '${reminder.title}' at ${DateFormat('dd-MM-yyyy HH:mm').format(occurrence)}");
-          scheduledCount++;
-
-          if (repeatType == 'month') {
-            occurrence = DateTime(
-              occurrence.year,
-              occurrence.month + interval,
-              occurrence.day,
-              occurrence.hour,
-              occurrence.minute,
-            );
-          } else if (repeatType == 'year') {
-            occurrence = DateTime(
-              occurrence.year + interval,
-              occurrence.month,
-              occurrence.day,
-              occurrence.hour,
-              occurrence.minute,
-            );
-          } else {
-            occurrence = occurrence.add(step!);
-          }
-        }
+        // Repeating reminder — schedule only one instance for now
+        final instance = reminder.copyWith(timestamp: reminder.timestamp);
+        await NotificationService().scheduleNotification(instance);
+        debugPrint("🔁 Repeats (${reminder.repeatType}): '${reminder.title}' at ${DateFormat('dd-MM-yyyy HH:mm').format(reminder.timestamp!)}");
+        scheduledCount++;
       }
     } else {
       debugPrint("⚠️ Skipped Reminder: '${data['title']}' has no valid timestamp");
@@ -86,7 +39,6 @@ Future<void> scheduleAllReminders(BuildContext context) async {
 
   debugPrint("✅ Total Reminders Scheduled: $scheduledCount");
 
-  // UI feedback with a SnackBar
   if (context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -96,4 +48,3 @@ Future<void> scheduleAllReminders(BuildContext context) async {
     );
   }
 }
-

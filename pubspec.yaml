@@ -45,9 +45,9 @@ dependencies:
   vm_service: 14.3.1
   flutter_dotenv: ^5.1.0
   path_provider: ^2.0.14
-  csv: ^5.0.2
+  csv: ^5.1.1
   sticky_headers: ^0.2.0
-
+  file_selector: ^1.0.0
 
   #  firebase_core: latest_version
   #  firebase_auth: latest_version

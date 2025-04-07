@@ -17,65 +17,41 @@ class EditReminderScreenState extends State<EditReminderScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  late TextEditingController _repeatIntervalController;
 
   DateTime? _selectedDateTime;
   String? _repeatType;
-  int? _repeatInterval;
-  DateTime? _repeatEnd;
   bool _hasChanges = false;
 
   late String _initialTitle;
   late String _initialDescription;
   late DateTime? _initialTimestamp;
   String? _initialRepeatType;
-  int? _initialRepeatInterval;
-  DateTime? _initialRepeatEnd;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.reminder.title);
     _descriptionController = TextEditingController(text: widget.reminder.description);
-    _repeatIntervalController = TextEditingController(
-      text: (widget.reminder.repeatInterval ?? 1).toString(),
-    );
 
     _selectedDateTime = widget.reminder.timestamp;
     _repeatType = widget.reminder.repeatType ?? 'only once';
-    _repeatInterval = widget.reminder.repeatInterval ?? 1;
-    _repeatEnd = widget.reminder.repeatEnd;
 
     _initialTitle = widget.reminder.title;
     _initialDescription = widget.reminder.description;
     _initialTimestamp = widget.reminder.timestamp;
     _initialRepeatType = _repeatType;
-    _initialRepeatInterval = _repeatInterval;
-    _initialRepeatEnd = _repeatEnd;
 
     _titleController.addListener(_checkForChanges);
     _descriptionController.addListener(_checkForChanges);
-    _repeatIntervalController.addListener(_onRepeatIntervalChanged);
   }
 
-  void _onRepeatIntervalChanged() {
-    final val = int.tryParse(_repeatIntervalController.text.trim());
-    if (val != null && val != _repeatInterval) {
-      setState(() {
-        _repeatInterval = val;
-        _checkForChanges();
-      });
-    }
-  }
 
   void _checkForChanges() {
     _hasChanges =
         _titleController.text != _initialTitle ||
             _descriptionController.text != _initialDescription ||
             _selectedDateTime != _initialTimestamp ||
-            _repeatType != _initialRepeatType ||
-            (_repeatType != 'only once' && _repeatInterval != _initialRepeatInterval) ||
-            (_repeatType != 'only once' && _repeatEnd != _initialRepeatEnd);
+            _repeatType != _initialRepeatType;
     setState(() {});
   }
 
@@ -106,21 +82,6 @@ class EditReminderScreenState extends State<EditReminderScreen> {
     });
   }
 
-  Future<void> _pickRepeatEndDate() async {
-    DateTime? pickedEndDate = await showDatePicker(
-      context: context,
-      initialDate: _repeatEnd ?? DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2101),
-    );
-    if (!mounted || pickedEndDate == null) return;
-
-    setState(() {
-      _repeatEnd = pickedEndDate;
-      _checkForChanges();
-    });
-  }
-
   Future<void> _updateReminder() async {
     if (!_hasChanges) return;
 
@@ -139,8 +100,6 @@ class EditReminderScreenState extends State<EditReminderScreen> {
       description: _descriptionController.text.trim(),
       timestamp: _selectedDateTime!,
       repeatType: _repeatType,
-      repeatInterval: _repeatType != 'only once' ? _repeatInterval : null,
-      repeatEnd: _repeatType != 'only once' ? _repeatEnd : null,
     );
 
     await FirebaseFirestore.instance
@@ -161,8 +120,6 @@ class EditReminderScreenState extends State<EditReminderScreen> {
       _initialDescription = _descriptionController.text;
       _initialTimestamp = _selectedDateTime!;
       _initialRepeatType = _repeatType;
-      _initialRepeatInterval = _repeatInterval;
-      _initialRepeatEnd = _repeatEnd;
       _hasChanges = false;
     });
   }
@@ -174,9 +131,6 @@ class EditReminderScreenState extends State<EditReminderScreen> {
       _descriptionController.text = r.description;
       _selectedDateTime = r.timestamp;
       _repeatType = r.repeatType ?? 'only once';
-      _repeatInterval = r.repeatInterval ?? 1;
-      _repeatIntervalController.text = _repeatInterval.toString();
-      _repeatEnd = r.repeatEnd;
       _hasChanges = false;
     });
   }
@@ -185,7 +139,6 @@ class EditReminderScreenState extends State<EditReminderScreen> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _repeatIntervalController.dispose();
     super.dispose();
   }
 
@@ -257,21 +210,6 @@ class EditReminderScreenState extends State<EditReminderScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    if (_repeatType != 'only once')
-                      TextFormField(
-                        controller: _repeatIntervalController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: "Repeat Interval"),
-                      ),
-                    const SizedBox(height: 10),
-                    if (_repeatType != 'only once')
-                      ElevatedButton(
-                        onPressed: _pickRepeatEndDate,
-                        child: Text(_repeatEnd == null
-                            ? "Select Repeat End Date"
-                            : "Repeat Ends: ${DateFormat('dd-MM-yyyy').format(_repeatEnd!)}"),
-                      ),
                   ],
                 ),
               const SizedBox(height: 20),
