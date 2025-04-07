@@ -138,7 +138,8 @@ class AddReminderScreenState extends State<AddReminderScreen> {
         final query = await FirebaseFirestore.instance
             .collection('reminders')
             .where('title', isEqualTo: title)
-            .where('timestamp', isEqualTo: Timestamp.fromDate(timestamp))
+            .where('description', isEqualTo: description)
+            .where('repeatType', isEqualTo: repeatType)
             .get();
 
         if (query.docs.isNotEmpty) {
