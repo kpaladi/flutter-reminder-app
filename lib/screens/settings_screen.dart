@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user_settings_model.dart';
+import '../widgets/app_reset_button.dart';
+import '../widgets/gradient_scaffold.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key}); // ✅ Add 'key' parameter
+  const SettingsScreen({super.key});
 
   @override
   SettingsScreenState createState() => SettingsScreenState();
@@ -66,7 +68,7 @@ class SettingsScreenState extends State<SettingsScreen> {
     });
 
     scaffoldMessenger.showSnackBar(
-      SnackBar(content: Text('Settings saved successfully!')),
+      const SnackBar(content: Text('✅ Settings saved successfully!')),
     );
   }
 
@@ -78,34 +80,36 @@ class SettingsScreenState extends State<SettingsScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Settings reset to last saved state.')),
+      const SnackBar(content: Text('↩️ Settings reset to last saved state.')),
     );
   }
-
-
 
   void _checkForChanges() {
     setState(() {
       _isSaveEnabled =
           _emailController.text != _initialEmail ||
-          _isEmailEnabled != _initialEmailEnabled;
+              _isEmailEnabled != _initialEmailEnabled;
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
     if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: Text("Settings")),
-        body: Center(child: CircularProgressIndicator()),
+      return GradientScaffold(
+        appBar: AppBar(title: const Text("Settings")),
+        body: const Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text("Settings")),
+    return GradientScaffold(
+      appBar: AppBar(title: const Text("Settings")),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -114,17 +118,27 @@ class SettingsScreenState extends State<SettingsScreen> {
               decoration: InputDecoration(
                 labelText: "Recipient Email",
                 hintText: "Enter your email",
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
+                labelStyle: textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
               ),
               keyboardType: TextInputType.emailAddress,
+              cursorColor: theme.colorScheme.primary,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Enable Email Notifications"),
+                Text(
+                  "Enable Email Notifications",
+                  style: textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
                 Switch(
                   value: _isEmailEnabled,
+                  activeColor: theme.colorScheme.primary,
                   onChanged: (bool value) {
                     setState(() {
                       _isEmailEnabled = value;
@@ -134,27 +148,31 @@ class SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton.icon(
                   onPressed: _isSaveEnabled ? _saveSettings : null,
-                  icon: Icon(Icons.save),
-                  label: Text("Save Settings"),
+                  icon: const Icon(Icons.save),
+                  label: const Text("Save Settings"),
                   style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    backgroundColor: _isSaveEnabled
+                        ? theme.colorScheme.primary
+                        : theme.disabledColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
-                ElevatedButton.icon(
-                  onPressed: (_isSaveEnabled || _emailController.text != _initialEmail || _isEmailEnabled != _initialEmailEnabled)
-                      ? _resetToInitialValues
-                      : null,
-                  icon: Icon(Icons.restore),
-                  label: Text("Reset"),
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
+                AppResetButton(
+                  onPressed: _resetToInitialValues,
+                  isEnabled: _isSaveEnabled ||
+                      _emailController.text != _initialEmail ||
+                      _isEmailEnabled != _initialEmailEnabled,
+                  showIcon: true,
                 ),
               ],
             ),

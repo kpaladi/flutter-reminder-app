@@ -1,12 +1,10 @@
-
 import 'package:csv/csv.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:reminder_app/services/notification_service.dart';
 import '../models/reminder_model.dart';
-
-
+import '../widgets/gradient_scaffold.dart'; // ⬅️ Make sure this path matches your structure
 
 class AddReminderScreen extends StatefulWidget {
   const AddReminderScreen({super.key});
@@ -64,7 +62,7 @@ class AddReminderScreenState extends State<AddReminderScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Reminder Added!")),
+        const SnackBar(content: Text("✅ Reminder Added!")),
       );
     }
 
@@ -106,8 +104,6 @@ class AddReminderScreenState extends State<AddReminderScreen> {
     });
   }
 
-
-
   Future<void> importFromCsv(BuildContext context) async {
     try {
       const XTypeGroup typeGroup = XTypeGroup(
@@ -126,7 +122,7 @@ class AddReminderScreenState extends State<AddReminderScreen> {
       }
 
       int addedCount = 0;
-      int duplicateCount = 0; // 👈 New
+      int duplicateCount = 0;
 
       for (int i = 1; i < rows.length; i++) {
         final row = rows[i];
@@ -139,7 +135,6 @@ class AddReminderScreenState extends State<AddReminderScreen> {
         final timestamp = DateTime.tryParse(timestampStr);
         if (timestamp == null) continue;
 
-        // 🔍 Check for duplicate
         final query = await FirebaseFirestore.instance
             .collection('reminders')
             .where('title', isEqualTo: title)
@@ -147,7 +142,7 @@ class AddReminderScreenState extends State<AddReminderScreen> {
             .get();
 
         if (query.docs.isNotEmpty) {
-          duplicateCount++; // 👈 Count duplicate
+          duplicateCount++;
           continue;
         }
 
@@ -159,14 +154,18 @@ class AddReminderScreenState extends State<AddReminderScreen> {
           repeatType: repeatType,
         );
 
-        await FirebaseFirestore.instance.collection('reminders').add(reminder.toMap());
+        await FirebaseFirestore.instance
+            .collection('reminders')
+            .add(reminder.toMap());
         addedCount++;
       }
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("✅ Imported $addedCount reminders, ignored $duplicateCount duplicates"),
+            content: Text(
+              "✅ Imported $addedCount reminders, ignored $duplicateCount duplicates",
+            ),
           ),
         );
       }
@@ -174,18 +173,20 @@ class AddReminderScreenState extends State<AddReminderScreen> {
       debugPrint("❌ Import failed: $e");
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ Import failed")),
+          const SnackBar(content: Text("❌ Import failed")),
         );
       }
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Add Reminder"),
+    final theme = Theme.of(context);
+
+    return GradientScaffold(
+      appBar: AppBar(
+        title: const Text("Add Reminder"),
+        centerTitle: true,
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -194,7 +195,7 @@ class AddReminderScreenState extends State<AddReminderScreen> {
               }
             },
             itemBuilder: (BuildContext context) => [
-              PopupMenuItem<String>(
+              const PopupMenuItem<String>(
                 value: 'import',
                 child: Text('Import from CSV'),
               ),
@@ -203,73 +204,114 @@ class AddReminderScreenState extends State<AddReminderScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              TextField(
-                textCapitalization: TextCapitalization.sentences,
-                controller: titleController,
-                decoration: const InputDecoration(labelText: "Title"),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              textCapitalization: TextCapitalization.sentences,
+              controller: titleController,
+              decoration: InputDecoration(
+                labelText: "Title",
+                labelStyle: TextStyle(color: theme.colorScheme.primary),
+                border: const OutlineInputBorder(),
               ),
-              TextField(
-                textCapitalization: TextCapitalization.sentences,
-                controller: descriptionController,
-                decoration: const InputDecoration(labelText: "Description"),
+              cursorColor: theme.colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              textCapitalization: TextCapitalization.sentences,
+              controller: descriptionController,
+              decoration: InputDecoration(
+                labelText: "Description",
+                labelStyle: TextStyle(color: theme.colorScheme.primary),
+                border: const OutlineInputBorder(),
               ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: pickDateTime,
-                child: Text(
-                  selectedDateTime == null
-                      ? "Pick Date & Time"
-                      : "Selected: ${selectedDateTime!.toLocal().toString()}",
+              cursorColor: theme.colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: pickDateTime,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              const SizedBox(height: 20),
-              if (selectedDateTime != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Repeat Every",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: repeatType,
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                repeatType = newValue!;
-                                _onFormChanged();
-                              });
-                            },
-                            items: <String>['only once', 'day', 'week', 'month', 'year']
-                                .map<DropdownMenuItem<String>>((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
-                            decoration: const InputDecoration(labelText: "Type"),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: hasChanges ? addReminder : null,
-                child: const Text("Add Reminder"),
+              child: Text(
+                selectedDateTime == null
+                    ? "Pick Date & Time"
+                    : "Selected: ${selectedDateTime!.toLocal().toString()}",
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 24),
+            if (selectedDateTime != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Repeat Every",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: repeatType,
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        repeatType = newValue!;
+                        _onFormChanged();
+                      });
+                    },
+                    items: <String>[
+                      'only once',
+                      'day',
+                      'week',
+                      'month',
+                      'year'
+                    ].map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    decoration: InputDecoration(
+                      labelText: "Type",
+                      labelStyle: TextStyle(color: theme.colorScheme.primary),
+                      border: const OutlineInputBorder(),
+                    ),
+                    dropdownColor: theme.cardColor,
+                  ),
+                ],
+              ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: hasChanges ? addReminder : null,
+              icon: const Icon(Icons.check), // Also updated icon for clarity
+              label: const Text("Submit"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: hasChanges
+                    ? theme.colorScheme.primary
+                    : theme.disabledColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    titleController.removeListener(_onFormChanged);
+    descriptionController.removeListener(_onFormChanged);
+    titleController.dispose();
+    descriptionController.dispose();
+    super.dispose();
   }
 }

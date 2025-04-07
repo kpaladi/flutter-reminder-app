@@ -25,15 +25,9 @@ class NotificationService {
   Future<void> scheduleNotification(Reminder reminder) async {
     final int notifId = reminder.id.hashCode;
 
-    final scheduledTime = tz.TZDateTime.from(
-      reminder.timestamp ?? DateTime.now(),
-      tz.local,
-    );
-
     final repeatType = reminder.repeatType?.toLowerCase();
 
     DateTimeComponents? matchComponents;
-
     if (repeatType == 'day') {
       matchComponents = DateTimeComponents.time;
     } else if (repeatType == 'week') {
@@ -42,6 +36,55 @@ class NotificationService {
       matchComponents = DateTimeComponents.dayOfMonthAndTime;
     } else if (repeatType == 'year') {
       matchComponents = DateTimeComponents.dateAndTime;
+    }
+
+    tz.TZDateTime scheduledTime = tz.TZDateTime.from(
+      reminder.timestamp ?? DateTime.now(),
+      tz.local,
+    );
+
+    // 🧠 Adjust past scheduled times for repeating reminders
+    final now = tz.TZDateTime.now(tz.local);
+    if (scheduledTime.isBefore(now)) {
+      switch (repeatType) {
+        case 'day':
+          while (scheduledTime.isBefore(now)) {
+            scheduledTime = scheduledTime.add(const Duration(days: 1));
+          }
+          break;
+        case 'week':
+          while (scheduledTime.isBefore(now)) {
+            scheduledTime = scheduledTime.add(const Duration(days: 7));
+          }
+          break;
+        case 'month':
+          while (scheduledTime.isBefore(now)) {
+            scheduledTime = tz.TZDateTime(
+              scheduledTime.location,
+              scheduledTime.year,
+              scheduledTime.month + 1,
+              scheduledTime.day,
+              scheduledTime.hour,
+              scheduledTime.minute,
+            );
+          }
+          break;
+        case 'year':
+          while (scheduledTime.isBefore(now)) {
+            scheduledTime = tz.TZDateTime(
+              scheduledTime.location,
+              scheduledTime.year + 1,
+              scheduledTime.month,
+              scheduledTime.day,
+              scheduledTime.hour,
+              scheduledTime.minute,
+            );
+          }
+          break;
+        case 'only once':
+          debugPrint("⚠️ Skipping one-time reminder in the past: ${reminder.title}");
+          return;
+      }
     }
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
@@ -79,6 +122,7 @@ class NotificationService {
     debugPrint("📅 Scheduled reminder ID: ${reminder.id} at $scheduledTime (repeat: $repeatType)");
     await _saveScheduledReminder(reminder.id);
   }
+
 
 
   Future<void> cancelNotification(String reminderId) async {

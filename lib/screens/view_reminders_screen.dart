@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import '../models/reminder_model.dart';
 import '../services/notification_service.dart';
+import '../widgets/gradient_scaffold.dart';
 import 'edit_reminder_screen.dart';
 import 'package:csv/csv.dart';
 import 'package:sticky_headers/sticky_headers.dart';
@@ -37,9 +37,9 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
       await _notificationService.scheduleNotification(updatedReminder);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Reminder updated')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('✅ Reminder updated')));
       }
 
       setState(() {});
@@ -80,11 +80,15 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
     }
   }
 
-  static const MethodChannel _platform = MethodChannel('notification_access_channel');
+  static const MethodChannel _platform = MethodChannel(
+    'notification_access_channel',
+  );
 
   Future<void> checkAndRequestAllFilesAccess(BuildContext context) async {
     try {
-      final bool isGranted = await _platform.invokeMethod('isAllFilesAccessGranted');
+      final bool isGranted = await _platform.invokeMethod(
+        'isAllFilesAccessGranted',
+      );
 
       if (isGranted) {
         debugPrint("✅ All files access already granted.");
@@ -95,40 +99,45 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
 
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Storage Permission Required"),
-          content: const Text(
-            "This app needs access to manage all files to import/export reminders.\n\n"
+        builder:
+            (context) => AlertDialog(
+              title: const Text("Storage Permission Required"),
+              content: const Text(
+                "This app needs access to manage all files to import/export reminders.\n\n"
                 "Please grant this in system settings.",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Cancel"),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Cancel"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    try {
+                      await _platform.invokeMethod(
+                        'openAllFilesAccessSettings',
+                      );
+                    } catch (e) {
+                      debugPrint(
+                        "⚠️ Failed to open All Files Access settings: $e",
+                      );
+                    }
+                  },
+                  child: const Text("Grant Access"),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                try {
-                  await _platform.invokeMethod('openAllFilesAccessSettings');
-                } catch (e) {
-                  debugPrint("⚠️ Failed to open All Files Access settings: $e");
-                }
-              },
-              child: const Text("Grant Access"),
-            ),
-          ],
-        ),
       );
     } catch (e) {
       debugPrint("❌ Error checking All Files Access: $e");
     }
   }
 
-
-
-
-  Future<void> exportRemindersToDownloads(BuildContext context, List<QueryDocumentSnapshot> reminders) async {
+  Future<void> exportRemindersToDownloads(
+    BuildContext context,
+    List<QueryDocumentSnapshot> reminders,
+  ) async {
     try {
       // Request manage external storage permission
       // ToDo: The below permission is working only due to special access I have manually granted on the device.
@@ -145,11 +154,14 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
 
       // Prepare CSV data
       List<List<dynamic>> csvData = [
-        ['Title', 'Description', 'Timestamp', 'Repeat Type']
+        ['Title', 'Description', 'Timestamp', 'Repeat Type'],
       ];
 
       for (var doc in reminders) {
-        final reminder = Reminder.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+        final reminder = Reminder.fromMap(
+          doc.data() as Map<String, dynamic>,
+          doc.id,
+        );
         csvData.add([
           reminder.title,
           reminder.description,
@@ -168,22 +180,29 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
       await file.writeAsString(csv);
 
       if (context.mounted) {
+        final theme = Theme.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✅ Exported to ${file.path}')),
+          SnackBar(
+            content: Text('✅ Exported to ${file.path}'),
+            backgroundColor: theme.colorScheme.primary,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {
       debugPrint('❌ Export failed: $e');
       if (context.mounted) {
+        final theme = Theme.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Export failed')),
+          SnackBar(
+            content: const Text('❌ Export failed'),
+            backgroundColor: theme.colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     }
   }
-
-
-
 
   String _formatDate(DateTime? date) {
     if (date == null) return '';
@@ -196,7 +215,9 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
   }
 
   String _buildRepeatSummary(Reminder r) {
-    if (r.repeatType == 'only once' || r.repeatType == null || r.repeatType!.isEmpty) {
+    if (r.repeatType == 'only once' ||
+        r.repeatType == null ||
+        r.repeatType!.isEmpty) {
       final time = _formatTime(r.timestamp!);
       final date = _formatDate(r.timestamp!);
       return "Reminder at $time on $date";
@@ -210,53 +231,53 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
     return "Reminder $every at $time, from $start";
   }
 
-
   Reminder _mapDocToReminder(QueryDocumentSnapshot doc) {
     return Reminder.fromMap(doc.data() as Map<String, dynamic>, doc.id);
   }
 
+  // 🔁 Inside _buildReminderCard method:
   Widget _buildReminderCard(Reminder reminder) {
+    final theme = Theme.of(context);
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      margin: EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              reminder.title,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 4),
+            Text(reminder.title, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 8),
             Text(
               reminder.description,
-              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[700],
+              ),
             ),
-            SizedBox(height: 6),
+            const SizedBox(height: 10),
             Row(
               children: [
-                Icon(Icons.schedule, size: 16, color: Colors.grey[700]),
-                SizedBox(width: 6),
+                Icon(Icons.schedule, size: 18, color: Colors.grey[700]),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     _buildRepeatSummary(reminder),
-                    style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[700],
+                    ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
-                  icon: Icon(Icons.edit, color: Colors.blue),
+                  icon: Icon(Icons.edit, color: theme.colorScheme.primary),
                   onPressed: () => _editReminder(reminder.id, reminder),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete, color: Colors.red),
+                  icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: () => _confirmDeleteReminder(reminder.id),
                 ),
               ],
@@ -269,12 +290,15 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("View Reminders")),
+    final theme = Theme.of(context);
+    return GradientScaffold(
+      appBar: AppBar(title: const Text("View Reminders")),
       body: StreamBuilder<QuerySnapshot>(
         stream: _db.collection("reminders").snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
 
           Map<String, List<Reminder>> groupedReminders = {
             'One-Time': [],
@@ -306,39 +330,50 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
 
           // ✅ Sort reminders in each group by timestamp
           groupedReminders.forEach((key, list) {
-            list.sort((a, b) => (a.timestamp ?? DateTime(2100)).compareTo(b.timestamp ?? DateTime(2100)));
+            list.sort(
+              (a, b) => (a.timestamp ?? DateTime(2100)).compareTo(
+                b.timestamp ?? DateTime(2100),
+              ),
+            );
           });
 
           return ListView(
             padding: EdgeInsets.all(12),
-            children: groupedReminders.entries
-                .where((entry) => entry.value.isNotEmpty)
-                .map((entry) {
-              final reminders = entry.value..sort((a, b) {
-                final aTime = a.timestamp ?? DateTime(2100);
-                final bTime = b.timestamp ?? DateTime(2100);
-                return aTime.compareTo(bTime);
-              });
+            children:
+                groupedReminders.entries
+                    .where((entry) => entry.value.isNotEmpty)
+                    .map((entry) {
+                      final reminders =
+                          entry.value..sort((a, b) {
+                            final aTime = a.timestamp ?? DateTime(2100);
+                            final bTime = b.timestamp ?? DateTime(2100);
+                            return aTime.compareTo(bTime);
+                          });
 
-              return StickyHeader(
-                header: Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                  color: Colors.grey.shade300,
-                  child: Text(
-                    entry.key,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                content: Column(
-                  children: reminders.map((reminder) => _buildReminderCard(reminder)).toList(),
-                ),
-              );
-            })
-                .toList(),
+                      return StickyHeader(
+                        header: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                          color: Theme.of(context).appBarTheme.backgroundColor ?? Theme.of(context).colorScheme.primary,
+                          child: Text(
+                            entry.key,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).appBarTheme.foregroundColor ?? Colors.white,
+                            ),
+                          ),
+                        ),
+                        content: Column(
+                          children:
+                              reminders
+                                  .map(
+                                    (reminder) => _buildReminderCard(reminder),
+                                  )
+                                  .toList(),
+                        ),
+                      );
+                    })
+                    .toList(),
           );
         },
       ),
@@ -346,9 +381,15 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
         stream: _db.collection("reminders").snapshots(),
         builder: (context, snapshot) {
           return FloatingActionButton(
-            onPressed: snapshot.hasData ? () => exportRemindersToDownloads(context, snapshot.data!.docs) : null,
+            onPressed:
+                snapshot.hasData
+                    ? () =>
+                        exportRemindersToDownloads(context, snapshot.data!.docs)
+                    : null,
             tooltip: 'Export Reminders',
-            child: Icon(Icons.download),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Colors.white,
+            child: const Icon(Icons.download),
           );
         },
       ),

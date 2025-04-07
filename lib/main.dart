@@ -12,8 +12,11 @@ import 'package:reminder_app/services/initialize_notifications.dart';
 import 'package:reminder_app/services/notification_service.dart';
 import 'package:reminder_app/services/special_permission_check.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:reminder_app/theme/app_theme.dart';
+import 'package:reminder_app/widgets/gradient_scaffold.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -100,6 +103,7 @@ class ReminderApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: appTheme,
       home: HomeScreen(),
     );
   }
@@ -137,21 +141,26 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GradientScaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "Reminder",
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          style: GoogleFonts.montserrat(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.0,
+            color: Theme.of(context).appBarTheme.titleTextStyle?.color,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.greenAccent,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Image.asset('assets/logo.png', height: 40),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings, color: Colors.blue[800]),
+            icon: Icon(Icons.settings, color: Theme.of(context).iconTheme.color),
             onPressed: () async {
               await Navigator.push(
                 context,
@@ -166,8 +175,7 @@ class HomeScreenState extends State<HomeScreen> {
                 _refreshReminders(context);
               }
             },
-            itemBuilder: (context) =>
-            [
+            itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'refresh',
                 child: Text('Refresh Reminders'),
@@ -191,7 +199,7 @@ class HomeScreenState extends State<HomeScreen> {
               _buildButton(
                 icon: Icons.add_alert,
                 label: "Add Reminder",
-                color: Colors.greenAccent,
+                color: Theme.of(context).primaryColor,
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -204,7 +212,7 @@ class HomeScreenState extends State<HomeScreen> {
               _buildButton(
                 icon: Icons.list_alt,
                 label: "View Reminders",
-                color: Colors.greenAccent,
+                color: Theme.of(context).primaryColor,
                 onPressed: () {
                   Navigator.push(
                     context,

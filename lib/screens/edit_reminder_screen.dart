@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../models/reminder_model.dart';
 import '../services/notification_service.dart';
+import '../widgets/app_reset_button.dart';
+import '../widgets/gradient_scaffold.dart';
 
 class EditReminderScreen extends StatefulWidget {
   final Reminder reminder;
@@ -144,7 +146,7 @@ class EditReminderScreenState extends State<EditReminderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GradientScaffold(
       appBar: AppBar(title: const Text("Edit Reminder")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -158,6 +160,7 @@ class EditReminderScreenState extends State<EditReminderScreen> {
                 decoration: const InputDecoration(labelText: "Title"),
                 validator: (value) => value!.isEmpty ? "Title cannot be empty" : null,
               ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
                 textCapitalization: TextCapitalization.sentences,
@@ -214,15 +217,16 @@ class EditReminderScreenState extends State<EditReminderScreen> {
                 ),
               const SizedBox(height: 20),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   ElevatedButton(
                     onPressed: _hasChanges ? _updateReminder : null,
                     child: const Text("Update Reminder"),
                   ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: _hasChanges ? _resetChanges : null,
-                    child: const Text("Reset"),
+                  AppResetButton(
+                    onPressed: _resetChanges,
+                    isEnabled: _hasChanges,
+                    showIcon: false,
                   ),
                 ],
               ),
