@@ -79,21 +79,24 @@ Future<void> clearAllScheduledReminders() async {
   debugPrint("🧹 Cleared scheduled reminders from SharedPreferences.");
 }
 
-Future<void> fetchAndScheduleReminders() async {
+Future<int> fetchAndScheduleReminders() async {
   final FirebaseFirestore db = FirebaseFirestore.instance;
   final snapshot = await db.collection("reminders").get();
 
   await clearAllScheduledReminders();
 
+  int scheduledCount = 0;
+
   for (var doc in snapshot.docs) {
     final reminder = Reminder.fromMap(doc.data());
 
     if (reminder.timestamp != null) {
-      await NotificationService().scheduleNotification(
-        reminder,
-      );
+      await NotificationService().scheduleNotification(reminder);
+      scheduledCount++;
     }
   }
+
+  return scheduledCount;
 }
 
 class ReminderApp extends StatelessWidget {
@@ -255,9 +258,9 @@ class HomeScreenState extends State<HomeScreen> {
     final messenger = ScaffoldMessenger.of(context);
 
     try {
-      await fetchAndScheduleReminders();
+      final count = await fetchAndScheduleReminders();
       messenger.showSnackBar(
-        const SnackBar(content: Text('🔄 Reminders refreshed')),
+        SnackBar(content: Text('🔄 Refreshed $count reminder(s)')),
       );
     } catch (e) {
       messenger.showSnackBar(

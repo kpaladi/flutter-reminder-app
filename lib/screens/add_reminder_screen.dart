@@ -155,9 +155,13 @@ class AddReminderScreenState extends State<AddReminderScreen> {
           repeatType: repeatType,
         );
 
-        await FirebaseFirestore.instance
+        final docRef = await FirebaseFirestore.instance
             .collection('reminders')
             .add(reminder.toMap());
+
+        final savedReminder = reminder.copyWith(id: docRef.id);
+        await NotificationService().scheduleNotification(savedReminder);
+
         addedCount++;
       }
 
