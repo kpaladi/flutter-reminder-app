@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import '../models/reminder_model.dart';
 import '../services/notification_service.dart';
+import '../services/whatsapp_service.dart' as whatsappservice;
 import '../utils/dialogs.dart';
 import '../widgets/gradient_scaffold.dart';
 import 'edit_reminder_screen.dart';
@@ -13,6 +15,8 @@ import 'package:sticky_headers/sticky_headers.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 
 class ViewRemindersScreen extends StatefulWidget {
   const ViewRemindersScreen({super.key});
@@ -20,6 +24,9 @@ class ViewRemindersScreen extends StatefulWidget {
   @override
   ViewRemindersScreenState createState() => ViewRemindersScreenState();
 }
+
+
+
 
 class ViewRemindersScreenState extends State<ViewRemindersScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -199,6 +206,19 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
     }
   }
 
+  void launchWhatsAppMessage(Reminder reminder) async {
+    final message = Uri.encodeComponent("⏰ Reminder: ${reminder.title} - ${reminder.description}");
+    final url = "https://api.whatsapp.com/send?text=$message";
+
+    debugPrint("[WhatsAppLaunch] Trying URL: $url");
+
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } else {
+      debugPrint("[WhatsAppLaunch] Could not launch WhatsApp.");
+    }
+  }
+
   Future<void> exportRemindersToDownloads(
     BuildContext context,
     List<QueryDocumentSnapshot> reminders,
@@ -356,6 +376,13 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
+                  icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green),
+                  tooltip: 'Share via WhatsApp',
+                  onPressed: () {
+                    whatsappservice.sendReminder(context: context, reminder: reminder);
+                  },
+                ),
+                IconButton(
                   icon: Icon(Icons.edit, color: theme.colorScheme.primary),
                   onPressed: () => _editReminder(reminder.id, reminder),
                 ),
@@ -371,6 +398,7 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -382,7 +410,6 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
           if (!snapshot.hasData) {
             return Center(child: CircularProgressIndicator());
           }
-
           Map<String, List<Reminder>> groupedReminders = {
             'One-Time': [],
             'Daily': [],
