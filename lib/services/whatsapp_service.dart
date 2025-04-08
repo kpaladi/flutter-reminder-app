@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/reminder_model.dart';
@@ -23,5 +24,21 @@ Future<void> sendReminder({
     await launchUrl(url, mode: LaunchMode.externalApplication);
   } catch (e) {
     debugPrint('[WhatsAppService] Could not launch: $e');
+  }
+}
+
+Future<void> sendTextMessage({
+  required BuildContext context,
+  required String message,
+}) async {
+  final encodedMessage = Uri.encodeComponent(message);
+  final url = "https://wa.me/?text=$encodedMessage";
+
+  if (await canLaunchUrl(Uri.parse(url))) {
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Could not open WhatsApp")),
+    );
   }
 }
