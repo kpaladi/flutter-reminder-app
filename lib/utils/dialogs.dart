@@ -7,12 +7,19 @@ Future<void> runWithLoadingDialog({
   required String message,
   required Future<void> Function() task,
 }) async {
-  showLoadingDialog(context, message);
+  // Schedule showing the dialog after current frame
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    showLoadingDialog(context, message);
+  });
+
   try {
     await task();
   } finally {
-    if (context.mounted) {
-      hideLoadingDialog(context);
-    }
+    // Schedule hiding the dialog safely
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) {
+        hideLoadingDialog(context);
+      }
+    });
   }
 }
