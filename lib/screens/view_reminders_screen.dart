@@ -424,16 +424,6 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
                 case 'Daily':
                   final aMinutes = aTime.hour * 60 + aTime.minute;
                   final bMinutes = bTime.hour * 60 + bTime.minute;
-
-                  debugPrint("🕒 Comparing for Daily:");
-                  debugPrint(
-                    "   A: ${a.title} at ${aTime.hour}:${aTime.minute} ($aMinutes min)",
-                  );
-                  debugPrint(
-                    "   B: ${b.title} at ${bTime.hour}:${bTime.minute} ($bMinutes min)",
-                  );
-                  debugPrint("   Result: ${aMinutes.compareTo(bMinutes)}");
-
                   return aMinutes.compareTo(bMinutes);
 
                 case 'Weekly':
