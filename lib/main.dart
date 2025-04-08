@@ -13,6 +13,7 @@ import 'package:reminder_app/services/notification_service.dart';
 import 'package:reminder_app/services/special_permission_check.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:reminder_app/theme/app_theme.dart';
+import 'package:reminder_app/utils/dialogs.dart';
 import 'package:reminder_app/widgets/gradient_scaffold.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -173,9 +174,13 @@ class HomeScreenState extends State<HomeScreen> {
             },
           ),
           PopupMenuButton<String>(
-            onSelected: (value) {
+            onSelected: (value) async {
               if (value == 'refresh') {
-                _refreshReminders(context);
+                await runWithLoadingDialog(
+                  context: context,
+                  message: "Refreshing reminders...",
+                  task: () async => _refreshReminders(context),
+                );
               }
             },
             itemBuilder: (context) => [
@@ -185,6 +190,7 @@ class HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+
         ],
       ),
       body: Container(

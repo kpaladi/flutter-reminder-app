@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../models/reminder_model.dart';
 import '../services/notification_service.dart';
+import '../utils/dialogs.dart';
 import '../widgets/gradient_scaffold.dart';
 import 'edit_reminder_screen.dart';
 import 'package:csv/csv.dart';
@@ -23,6 +24,70 @@ class ViewRemindersScreen extends StatefulWidget {
 class ViewRemindersScreenState extends State<ViewRemindersScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final NotificationService _notificationService = NotificationService();
+
+  bool isReminderInPast(Reminder reminder) {
+    final now = DateTime.now();
+    final timestamp = reminder.timestamp;
+    if (timestamp == null) return false;
+
+    final repeatType = reminder.repeatType?.toLowerCase();
+
+    // For one-time reminders
+    if (repeatType == 'only once') {
+      return now.isAfter(timestamp);
+    }
+
+    final scheduledTime = TimeOfDay.fromDateTime(timestamp);
+    final nowTime = TimeOfDay.fromDateTime(now);
+
+    bool isTimePast(TimeOfDay nowTime, TimeOfDay scheduledTime) {
+      return nowTime.hour > scheduledTime.hour ||
+          (nowTime.hour == scheduledTime.hour &&
+              nowTime.minute > scheduledTime.minute);
+    }
+
+    if (repeatType == 'day') {
+      return isTimePast(nowTime, scheduledTime);
+    }
+
+    if (repeatType == 'week') {
+      final scheduledWeekday = timestamp.weekday;
+      final nowWeekday = now.weekday;
+
+      if (nowWeekday > scheduledWeekday) return true;
+      if (nowWeekday < scheduledWeekday) return false;
+
+      // Same weekday
+      return isTimePast(nowTime, scheduledTime);
+    }
+
+    if (repeatType == 'month') {
+      final scheduledDay = timestamp.day;
+      final nowDay = now.day;
+
+      if (nowDay > scheduledDay) return true;
+      if (nowDay < scheduledDay) return false;
+
+      return isTimePast(nowTime, scheduledTime);
+    }
+
+    if (repeatType == 'year') {
+      final scheduledMonth = timestamp.month;
+      final scheduledDay = timestamp.day;
+      final nowMonth = now.month;
+      final nowDay = now.day;
+
+      if (nowMonth > scheduledMonth) return true;
+      if (nowMonth < scheduledMonth) return false;
+
+      if (nowDay > scheduledDay) return true;
+      if (nowDay < scheduledDay) return false;
+
+      return isTimePast(nowTime, scheduledTime);
+    }
+
+    return false;
+  }
 
   void _editReminder(String reminderId, Reminder reminder) async {
     final updatedReminder = await Navigator.push<Reminder>(
@@ -238,31 +303,49 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
   // 🔁 Inside _buildReminderCard method:
   Widget _buildReminderCard(Reminder reminder) {
     final theme = Theme.of(context);
+    final isPast = isReminderInPast(
+      reminder,
+    ); // ✅ Determine if this is a past reminder
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: isPast ? Colors.grey.shade300 : theme.cardColor,
+      // 🔹 Lighter gray if past
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(reminder.title, style: theme.textTheme.titleLarge),
+            Text(
+              reminder.title,
+              style: theme.textTheme.titleLarge?.copyWith(
+                color:
+                    isPast
+                        ? Colors.grey.shade600
+                        : theme.textTheme.titleLarge?.color,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
               reminder.description,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[700],
+                color: isPast ? Colors.grey.shade500 : Colors.grey[700],
               ),
             ),
             const SizedBox(height: 10),
             Row(
               children: [
-                Icon(Icons.schedule, size: 18, color: Colors.grey[700]),
+                Icon(
+                  Icons.schedule,
+                  size: 18,
+                  color: isPast ? Colors.grey[500] : Colors.grey[700],
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     _buildRepeatSummary(reminder),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[700],
+                      color: isPast ? Colors.grey.shade500 : Colors.grey[700],
                     ),
                   ),
                 ),
@@ -330,11 +413,60 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
 
           // ✅ Sort reminders in each group by timestamp
           groupedReminders.forEach((key, list) {
-            list.sort(
-              (a, b) => (a.timestamp ?? DateTime(2100)).compareTo(
-                b.timestamp ?? DateTime(2100),
-              ),
-            );
+            list.sort((a, b) {
+              final aTime = a.timestamp ?? DateTime(2100);
+              final bTime = b.timestamp ?? DateTime(2100);
+
+              switch (key) {
+                case 'One-Time':
+                  return aTime.compareTo(bTime);
+
+                case 'Daily':
+                  final aMinutes = aTime.hour * 60 + aTime.minute;
+                  final bMinutes = bTime.hour * 60 + bTime.minute;
+
+                  debugPrint("🕒 Comparing for Daily:");
+                  debugPrint(
+                    "   A: ${a.title} at ${aTime.hour}:${aTime.minute} ($aMinutes min)",
+                  );
+                  debugPrint(
+                    "   B: ${b.title} at ${bTime.hour}:${bTime.minute} ($bMinutes min)",
+                  );
+                  debugPrint("   Result: ${aMinutes.compareTo(bMinutes)}");
+
+                  return aMinutes.compareTo(bMinutes);
+
+                case 'Weekly':
+                case 'Monthly':
+                  {
+                    final aUnit = (key == 'Weekly') ? aTime.weekday : aTime.day;
+                    final bUnit = (key == 'Weekly') ? bTime.weekday : bTime.day;
+
+                    if (aUnit != bUnit) return aUnit.compareTo(bUnit);
+
+                    final aMinutes = aTime.hour * 60 + aTime.minute;
+                    final bMinutes = bTime.hour * 60 + bTime.minute;
+                    return aMinutes.compareTo(bMinutes);
+                  }
+
+                case 'Yearly':
+                  {
+                    if (aTime.month != bTime.month) {
+                      return aTime.month.compareTo(bTime.month);
+                    }
+                    if (aTime.day != bTime.day) {
+                      return aTime.day.compareTo(bTime.day);
+                    }
+
+                    final aMinutes = aTime.hour * 60 + aTime.minute;
+                    final bMinutes = bTime.hour * 60 + bTime.minute;
+                    return aMinutes.compareTo(bMinutes);
+                  }
+
+                default:
+                  return aTime.compareTo(bTime); // fallback
+              }
+            });
           });
 
           return ListView(
@@ -343,23 +475,27 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
                 groupedReminders.entries
                     .where((entry) => entry.value.isNotEmpty)
                     .map((entry) {
-                      final reminders =
-                          entry.value..sort((a, b) {
-                            final aTime = a.timestamp ?? DateTime(2100);
-                            final bTime = b.timestamp ?? DateTime(2100);
-                            return aTime.compareTo(bTime);
-                          });
+                      final reminders = entry.value;
 
                       return StickyHeader(
                         header: Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                          color: Theme.of(context).appBarTheme.backgroundColor ?? Theme.of(context).colorScheme.primary,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 12,
+                          ),
+                          color:
+                              Theme.of(context).appBarTheme.backgroundColor ??
+                              Theme.of(context).colorScheme.primary,
                           child: Text(
                             entry.key,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).appBarTheme.foregroundColor ?? Colors.white,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).appBarTheme.foregroundColor ??
+                                  Colors.white,
                             ),
                           ),
                         ),
@@ -383,8 +519,15 @@ class ViewRemindersScreenState extends State<ViewRemindersScreen> {
           return FloatingActionButton(
             onPressed:
                 snapshot.hasData
-                    ? () =>
-                        exportRemindersToDownloads(context, snapshot.data!.docs)
+                    ? () async {
+                  await runWithLoadingDialog(
+                    context: context,
+                    message: "Exporting reminders...",
+                    task: () async {
+                      await exportRemindersToDownloads(context, snapshot.data!.docs);
+                    },
+                  );
+                }
                     : null,
             tooltip: 'Export Reminders',
             backgroundColor: Theme.of(context).colorScheme.primary,

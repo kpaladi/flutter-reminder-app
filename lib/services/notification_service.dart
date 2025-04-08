@@ -119,11 +119,9 @@ class NotificationService {
       payload: '${reminder.id}|${reminder.title}|${reminder.description}',
     );
 
-    debugPrint("📅 Scheduled reminder ID: ${reminder.id} at $scheduledTime (repeat: $repeatType)");
+    debugPrint("📅 Scheduled reminder ID: ${reminder.id.hashCode} at $scheduledTime (repeat: $repeatType)");
     await _saveScheduledReminder(reminder.id);
   }
-
-
 
   Future<void> cancelNotification(String reminderId) async {
     final int notificationId = reminderId.hashCode;

@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:reminder_app/services/notification_service.dart';
 import '../models/reminder_model.dart';
-import '../widgets/gradient_scaffold.dart'; // ⬅️ Make sure this path matches your structure
+import '../utils/dialogs.dart';
+import '../widgets/gradient_scaffold.dart';
 
 class AddReminderScreen extends StatefulWidget {
   const AddReminderScreen({super.key});
@@ -104,15 +105,19 @@ class AddReminderScreenState extends State<AddReminderScreen> {
     });
   }
 
+
   Future<void> importFromCsv(BuildContext context) async {
     try {
+
       const XTypeGroup typeGroup = XTypeGroup(
         label: 'CSV',
         extensions: ['csv'],
       );
 
       final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
-      if (file == null) return;
+      if (file == null) {
+        return;
+      }
 
       final input = await file.readAsString();
       final rows = const CsvToListConverter().convert(input);
@@ -174,7 +179,8 @@ class AddReminderScreenState extends State<AddReminderScreen> {
           ),
         );
       }
-    } catch (e) {
+
+    } catch (e) { // ✅ catch is now correctly outside the try
       debugPrint("❌ Import failed: $e");
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -183,6 +189,7 @@ class AddReminderScreenState extends State<AddReminderScreen> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -194,9 +201,13 @@ class AddReminderScreenState extends State<AddReminderScreen> {
         centerTitle: true,
         actions: [
           PopupMenuButton<String>(
-            onSelected: (value) {
+            onSelected: (value) async {
               if (value == 'import') {
-                importFromCsv(context);
+                await runWithLoadingDialog(
+                  context: context,
+                  message: "Importing reminders...",
+                  task: () => importFromCsv(context),
+                );
               }
             },
             itemBuilder: (BuildContext context) => [
