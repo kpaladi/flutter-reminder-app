@@ -73,3 +73,38 @@ String buildRepeatSummary(Reminder reminder) {
       return 'Once at ${DateFormat.yMMMd().add_jm().format(timestamp)}';
   }
 }
+
+DateTime? getNextOccurrence(Reminder reminder) {
+  final now = DateTime.now();
+  final time = reminder.scheduledTime;
+  if (time == null) return null;
+
+  switch (reminder.repeatType?.toLowerCase()) {
+    case 'daily':
+      final next = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+      return next.isAfter(now) ? next : next.add(const Duration(days: 1));
+
+    case 'weekly':
+      final daysToAdd = (time.weekday - now.weekday + 7) % 7;
+      var next = DateTime(now.year, now.month, now.day, time.hour, time.minute).add(Duration(days: daysToAdd));
+      return next.isAfter(now) ? next : next.add(const Duration(days: 7));
+
+    case 'monthly':
+      var next = DateTime(now.year, now.month, time.day, time.hour, time.minute);
+      if (next.isBefore(now)) {
+        next = DateTime(now.year, now.month + 1, time.day, time.hour, time.minute);
+      }
+      return next;
+
+    case 'yearly':
+      var next = DateTime(now.year, time.month, time.day, time.hour, time.minute);
+      if (next.isBefore(now)) {
+        next = DateTime(now.year + 1, time.month, time.day, time.hour, time.minute);
+      }
+      return next;
+
+    default:
+      return null;
+  }
+}
+

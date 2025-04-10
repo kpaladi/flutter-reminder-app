@@ -176,23 +176,6 @@ class HomeScreenState extends State<HomeScreen> {
               _checkEmailSet();
             },
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              if (value == 'refresh') {
-                await runWithLoadingDialog(
-                  context: context,
-                  message: "Refreshing reminders...",
-                  task: () async => _refreshReminders(context),
-                );
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'refresh',
-                child: Text('Refresh Reminders'),
-              ),
-            ],
-          ),
         ],
       ),
       body: Container(
@@ -260,20 +243,5 @@ class HomeScreenState extends State<HomeScreen> {
       ),
       onPressed: onPressed,
     );
-  }
-
-  void _refreshReminders(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
-
-    try {
-      final count = await fetchAndScheduleReminders();
-      messenger.showSnackBar(
-        SnackBar(content: Text('🔄 Refreshed $count reminder(s)')),
-      );
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('⚠️ Failed to refresh: $e')),
-      );
-    }
   }
 }

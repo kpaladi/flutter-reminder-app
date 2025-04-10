@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/reminder_model.dart';
 import '../services/delete_reminder.dart';
+import '../services/notification_service.dart';
+import '../utils/reminder_utils.dart';
 import '../widgets/gradient_scaffold.dart';
 import '../widgets/reminder_export_fab.dart';
 import '../widgets/remindergroup_sorted_active_past.dart';
@@ -16,6 +18,33 @@ class ViewRemindersScreen extends StatelessWidget {
     final data = doc.data() as Map<String, dynamic>;
     return Reminder.fromMap(data, doc.id);
   }
+
+  Future<void> refreshRepeatReminders(context) async {
+    final snapshot = await FirebaseFirestore.instance.collection('reminders').get();
+    final reminders = snapshot.docs.map((doc) => Reminder.fromMap(doc.data())).toList();
+
+    int refreshedCount = 0;
+
+    for (var reminder in reminders) {
+      if (reminder.repeatType != null &&
+          reminder.repeatType != 'once') {
+        final nextTime = getNextOccurrence(reminder);
+        if (nextTime != null) {
+          final updatedReminder = reminder.copyWith(scheduledTime: nextTime);
+          await NotificationService().scheduleNotification(updatedReminder);
+          refreshedCount++;
+        }
+      }
+    }
+
+    // Show snackbar confirmation with count
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Refreshed $refreshedCount repeat reminder(s)."),
+        ),
+      );
+  }
+
 
   Map<String, List<Reminder>> _groupReminders(List<DocumentSnapshot> docs) {
     Map<String, List<Reminder>> groupedReminders = {
@@ -74,6 +103,22 @@ class ViewRemindersScreen extends StatelessWidget {
     return GradientScaffold(
       appBar: AppBar(
         title: const Text("View Reminders"),
+      actions: [
+        PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'refresh') {
+              refreshRepeatReminders(context);
+            }
+          },
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'refresh',
+            child: Text('Refresh Repeat Reminders'),
+          ),
+          // Add other options here if needed
+        ],
+      ),
+      ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _db.collection("reminders").snapshots(),
