@@ -4,6 +4,7 @@ import '../models/reminder_model.dart';
 import '../services/import_csv.dart';
 import '../services/notification_service.dart';
 import '../utils/dialogs.dart';
+import '../widgets/app_reset_button.dart';
 import '../widgets/gradient_scaffold.dart';
 import '../widgets/shared_widgets.dart'; // Import shared widgets
 
@@ -32,6 +33,7 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
   late String initialTitle;
   late String initialDescription;
   late DateTime? initialDateTime;
+
   @override
   void initState() {
     super.initState();
@@ -61,10 +63,11 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     if (pickedDate == null) return;
 
     final now = DateTime.now();
-    final initialTime = TimeOfDay(
-      hour: now.hour,
-      minute: now.minute + 1,
-    );
+    final initialTime = TimeOfDay(hour: now.hour, minute: now.minute + 1);
+
+    if (!mounted) {
+      return;
+    }
 
     final pickedTime = await showTimePicker(
       context: context,
@@ -81,10 +84,11 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
         pickedTime.hour,
         pickedTime.minute,
       );
+      hasChanges = true;
     });
   }
 
-/*  void _onFormChanged() {
+  /*  void _onFormChanged() {
     setState(() {
       hasChanges = true;
     });
@@ -97,10 +101,13 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     final repeatTypeChanged = repeatType != initialRepeatType;
 
     setState(() {
-      hasChanges = titleChanged || descriptionChanged || dateTimeChanged || repeatTypeChanged;
+      hasChanges =
+          titleChanged ||
+          descriptionChanged ||
+          dateTimeChanged ||
+          repeatTypeChanged;
     });
   }
-
 
   void saveReminder() async {
     final now = DateTime.now();
@@ -111,9 +118,12 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       return;
     }
 
-    final docRef = isEditing
-        ? FirebaseFirestore.instance.collection('reminders').doc(widget.reminder!.reminder_id)
-        : FirebaseFirestore.instance.collection('reminders').doc();
+    final docRef =
+        isEditing
+            ? FirebaseFirestore.instance
+                .collection('reminders')
+                .doc(widget.reminder!.reminder_id)
+            : FirebaseFirestore.instance.collection('reminders').doc();
 
     final reminder = Reminder(
       reminder_id: docRef.id,
@@ -128,10 +138,10 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       await docRef.set(reminder.toMap());
       await NotificationService().scheduleNotification(reminder);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Reminder saved!")),
-        );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("✅ Reminder saved!")));
       }
 
       setState(() {
@@ -141,6 +151,10 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
         selectedDateTime = null;
         repeatType = 'once';
       });
+
+      if (!mounted) {
+        return;
+      }
 
       FocusScope.of(context).requestFocus(_titleFocusNode);
     } catch (e) {
@@ -153,10 +167,26 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     }
   }
 
+  void _resetToInitialValues() {
+    setState(() {
+      hasChanges = false;
+
+      if (widget.reminder == null) {
+        titleController.clear();
+        descriptionController.clear();
+        selectedDateTime = null;
+        repeatType = 'once';
+      } else {
+        titleController.text = initialTitle;
+        descriptionController.text = initialDescription;
+        selectedDateTime = initialDateTime;
+        repeatType = initialRepeatType;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return GradientScaffold(
       appBar: AppBar(
         title: Text(isEditing ? "Edit Reminder" : "Add Reminder"),
@@ -174,12 +204,13 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                   );
                 }
               },
-              itemBuilder: (_) => [
-                const PopupMenuItem<String>(
-                  value: 'import',
-                  child: Text('Import from CSV'),
-                ),
-              ],
+              itemBuilder:
+                  (_) => [
+                    const PopupMenuItem<String>(
+                      value: 'import',
+                      child: Text('Import from CSV'),
+                    ),
+                  ],
             ),
         ],
       ),
@@ -216,7 +247,10 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Repeat Every", style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Repeat Every",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 6),
                   AppDropdown(
                     label: "Type",
@@ -227,13 +261,27 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                         _onFormChanged();
                       });
                     },
-                    items: const ['once', 'daily', 'weekly', 'monthly', 'yearly'],
+                    items: const [
+                      'once',
+                      'daily',
+                      'weekly',
+                      'monthly',
+                      'yearly',
+                    ],
                   ),
                 ],
               ),
             const SizedBox(height: 24),
-            AppSubmitButton(
-              onPressed: hasChanges ? saveReminder : null,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                AppSubmitButton(onPressed: hasChanges ? saveReminder : null),
+                AppResetButton(
+                  onPressed: _resetToInitialValues,
+                  isEnabled: hasChanges,
+                  showIcon: true,
+                ),
+              ],
             ),
           ],
         ),

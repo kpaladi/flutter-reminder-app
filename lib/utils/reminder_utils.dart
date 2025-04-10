@@ -12,28 +12,28 @@ bool isReminderInPast(Reminder reminder) {
   switch (reminder.repeatType?.toLowerCase()) {
     case null:
     case '':
-    case 'only once':
+    case 'once':
       return time.isBefore(now);
 
-    case 'day':
+    case 'daily':
       return time.hour < now.hour ||
           (time.hour == now.hour && time.minute < now.minute);
 
-    case 'week':
+    case 'weekly':
       if (time.weekday < now.weekday) return true;
       if (time.weekday > now.weekday) return false;
 
       return time.hour < now.hour ||
           (time.hour == now.hour && time.minute < now.minute);
 
-    case 'month':
+    case 'monthly':
       if (time.day < now.day) return true;
       if (time.day > now.day) return false;
 
       return time.hour < now.hour ||
           (time.hour == now.hour && time.minute < now.minute);
 
-    case 'year':
+    case 'yearly':
       if (time.month < now.month) return true;
       if (time.month > now.month) return false;
 

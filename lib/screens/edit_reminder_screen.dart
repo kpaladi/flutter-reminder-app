@@ -6,6 +6,7 @@ import '../services/notification_service.dart';
 import '../widgets/app_reset_button.dart';
 import '../widgets/gradient_scaffold.dart';
 
+@Deprecated("merged into add_edit_reminder_screen")
 class EditReminderScreen extends StatefulWidget {
   final Reminder reminder;
 
@@ -15,6 +16,7 @@ class EditReminderScreen extends StatefulWidget {
   EditReminderScreenState createState() => EditReminderScreenState();
 }
 
+@Deprecated("merged into add_edit_reminder_screen")
 class EditReminderScreenState extends State<EditReminderScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;

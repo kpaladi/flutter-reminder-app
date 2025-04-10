@@ -7,6 +7,7 @@ import '../widgets/gradient_scaffold.dart';
 import '../widgets/shared_widgets.dart';
 import '../services/import_csv.dart';
 
+@Deprecated("merged into add_edit_reminder_screen")
 class AddReminderScreen extends StatefulWidget {
   const AddReminderScreen({super.key});
 
@@ -14,6 +15,7 @@ class AddReminderScreen extends StatefulWidget {
   State<AddReminderScreen> createState() => _AddReminderScreenState();
 }
 
+@Deprecated("merged into add_edit_reminder_screen")
 class _AddReminderScreenState extends State<AddReminderScreen> {
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();

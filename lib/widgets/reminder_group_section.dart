@@ -3,6 +3,7 @@ import 'package:sticky_headers/sticky_headers/widget.dart';
 
 import '../models/reminder_model.dart';
 import 'reminder_card.dart';
+import '../utils/reminder_utils.dart'; // Assuming isReminderInPast is defined here
 
 class ReminderGroupSection extends StatelessWidget {
   final String groupTitle;
@@ -45,11 +46,21 @@ class ReminderGroupSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final activeReminders = reminders
+        .where((r) => !isReminderInPast(r))
+        .toList()
+      ..sort((a, b) => b.scheduledTime!.compareTo(a.scheduledTime!));
+
+    final pastReminders = reminders
+        .where((r) => isReminderInPast(r))
+        .toList()
+      ..sort((a, b) => b.scheduledTime!.compareTo(a.scheduledTime!));
+
     return StickyHeader(
       header: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        color: theme.primaryColorDark.withValues(alpha: 1),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        color: theme.primaryColorDark.withAlpha(255),
         child: Text(
           groupTitle,
           style: theme.textTheme.titleLarge?.copyWith(
@@ -60,13 +71,34 @@ class ReminderGroupSection extends StatelessWidget {
       ),
       content: Column(
         children: [
-          ...reminders.map(
-                (reminder) => ReminderCard(
-              reminder: reminder,
-              onEdit: () => onEdit(reminder),
-              onDelete: () => _showDeleteConfirmation(context, reminder),
+          if (activeReminders.isNotEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(left: 8.0, top: 8.0, bottom: 4.0),
+                ),
+                ...activeReminders.map((reminder) => ReminderCard(
+                  reminder: reminder,
+                  onEdit: () => onEdit(reminder),
+                  onDelete: () => _showDeleteConfirmation(context, reminder),
+                )),
+              ],
             ),
-          ),
+          if (pastReminders.isNotEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(left: 8.0, top: 8.0, bottom: 4.0),
+                ),
+                ...pastReminders.map((reminder) => ReminderCard(
+                  reminder: reminder,
+                  onEdit: () => onEdit(reminder),
+                  onDelete: () => _showDeleteConfirmation(context, reminder),
+                )),
+              ],
+            ),
           const SizedBox(height: 16),
         ],
       ),

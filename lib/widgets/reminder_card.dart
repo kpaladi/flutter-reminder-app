@@ -61,7 +61,7 @@ class ReminderCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 1),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
