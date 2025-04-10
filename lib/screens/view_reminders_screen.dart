@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/reminder_model.dart';
-import '../services/notification_service.dart';
+import '../services/delete_reminder.dart';
 import '../widgets/gradient_scaffold.dart';
-import '../widgets/reminder_group_section.dart';
 import '../widgets/reminder_export_fab.dart';
 import '../widgets/remindergroup_sorted_active_past.dart';
 import '../widgets/shared_widgets.dart';
@@ -47,17 +46,6 @@ class ViewRemindersScreen extends StatelessWidget {
       }
     }
 
-/*
-    groupedReminders.forEach((key, list) {
-      list.sort((a, b) {
-        final aTime = a.scheduledTime ?? DateTime(2100);
-        final bTime = b.scheduledTime ?? DateTime(2100);
-        return aTime.compareTo(bTime);
-      });
-    });
-*/
-
-
     final now = DateTime.now();
 
     groupedReminders.forEach((key, list) {
@@ -78,6 +66,7 @@ class ViewRemindersScreen extends StatelessWidget {
     });
 
     return groupedReminders;
+
   }
 
   @override
@@ -109,13 +98,7 @@ class ViewRemindersScreen extends StatelessWidget {
                   arguments: reminder,
                 );
               },
-              onDelete: (reminder) async {
-                await _db.collection("reminders").doc(reminder.reminder_id).delete();
-                await NotificationService().cancelNotification(reminder.notification_id);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Reminder deleted")),
-                  );
-              },
+              onDelete: (reminder) => deleteReminder(context, reminder),
             ))
                 .toList(),
           );},
