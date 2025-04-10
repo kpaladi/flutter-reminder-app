@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/reminder_model.dart';
-import '../services/import_csv.dart';
 import '../services/notification_service.dart';
 import '../utils/dialogs.dart';
 import '../widgets/gradient_scaffold.dart';
-import '../widgets/shared_widgets.dart'; // Import the shared widgets
+import '../widgets/shared_widgets.dart';
+import '../services/import_csv.dart';
 
 class AddReminderScreen extends StatefulWidget {
   const AddReminderScreen({super.key});
@@ -24,31 +24,25 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   bool hasChanges = false;
 
   void pickDateTime() async {
-    // Pick the date first
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().add(const Duration(minutes: 1)),  // Start with 1 minute in the future
+      initialDate: DateTime.now().add(const Duration(minutes: 1)),
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
 
-    if (pickedDate == null) return; // If the user cancels, return
+    if (pickedDate == null) return;
 
-    // Get the current time and set it to one minute in the future
     final now = DateTime.now();
-    final initialTime = TimeOfDay(
-      hour: now.hour,
-      minute: now.minute + 1, // One minute after the current time
-    );
+    final initialTime = TimeOfDay(hour: now.hour, minute: now.minute + 1);
 
     final pickedTime = await showTimePicker(
       context: context,
-      initialTime: initialTime, // Use the current time plus one minute
+      initialTime: initialTime,
     );
 
-    if (pickedTime == null) return; // If the user cancels, return
+    if (pickedTime == null) return;
 
-    // Now update the date and time using the selected date and time
     setState(() {
       selectedDateTime = DateTime(
         pickedDate.year,
@@ -115,13 +109,20 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  void dispose() {
+    titleController.removeListener(_onFormChanged);
+    descriptionController.removeListener(_onFormChanged);
+    titleController.dispose();
+    descriptionController.dispose();
+    _titleFocusNode.dispose();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return GradientScaffold(
       appBar: AppBar(
         title: const Text("Add Reminder"),
-        centerTitle: true,
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) async {
@@ -150,7 +151,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               controller: titleController,
               label: "Title",
               focusNode: _titleFocusNode,
-              isFormField: true, // Use form field validation here
+              isFormField: true,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter a title';
@@ -162,7 +163,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
             AppTextField(
               controller: descriptionController,
               label: "Description",
-              isFormField: false, // No validation needed here
+              isFormField: false,
             ),
             const SizedBox(height: 16),
             buildDateTimePickerButton(
@@ -198,15 +199,5 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    titleController.removeListener(_onFormChanged);
-    descriptionController.removeListener(_onFormChanged);
-    titleController.dispose();
-    descriptionController.dispose();
-    _titleFocusNode.dispose();
-    super.dispose();
   }
 }

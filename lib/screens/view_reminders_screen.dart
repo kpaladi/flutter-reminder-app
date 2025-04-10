@@ -1,27 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../models/reminder_model.dart';
-import '../services/import_csv.dart';
 import '../services/notification_service.dart';
+import '../services/import_csv.dart';
 import '../utils/dialogs.dart';
 import '../widgets/gradient_scaffold.dart';
-import '../widgets/reminder_export_fab.dart';
 import '../widgets/reminder_group_section.dart';
-import '../widgets/shared_widgets.dart';  // Import your shared widgets
+import '../widgets/reminder_export_fab.dart';
+import '../widgets/shared_widgets.dart';
 
 class ViewRemindersScreen extends StatelessWidget {
   final _db = FirebaseFirestore.instance;
 
   ViewRemindersScreen({super.key});
 
-  // Mapping document to Reminder model
   Reminder _mapDocToReminder(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Reminder.fromMap(data, doc.id);
   }
 
-  // Grouping reminders based on their repeat type
   Map<String, List<Reminder>> _groupReminders(List<DocumentSnapshot> docs) {
     Map<String, List<Reminder>> groupedReminders = {
       'One-Time': [],
@@ -36,7 +33,6 @@ class ViewRemindersScreen extends StatelessWidget {
       final reminder = _mapDocToReminder(doc);
       final type = reminder.repeatType?.toLowerCase();
 
-      // Group reminders based on repeatType
       if (type == null || type.isEmpty || type == 'once') {
         groupedReminders['One-Time']!.add(reminder);
       } else if (type == 'daily') {
@@ -52,48 +48,11 @@ class ViewRemindersScreen extends StatelessWidget {
       }
     }
 
-    // Sort each group by scheduled time
     groupedReminders.forEach((key, list) {
       list.sort((a, b) {
         final aTime = a.scheduledTime ?? DateTime(2100);
         final bTime = b.scheduledTime ?? DateTime(2100);
-
-        switch (key) {
-          case 'One-Time':
-            return aTime.compareTo(bTime);
-          case 'Daily':
-            return (aTime.hour * 60 + aTime.minute)
-                .compareTo(bTime.hour * 60 + bTime.minute);
-          case 'Weekly':
-            {
-              final aUnit = aTime.weekday;
-              final bUnit = bTime.weekday;
-              if (aUnit != bUnit) return aUnit.compareTo(bUnit);
-              return (aTime.hour * 60 + aTime.minute)
-                  .compareTo(bTime.hour * 60 + bTime.minute);
-            }
-          case 'Monthly':
-            {
-              final aUnit = aTime.day;
-              final bUnit = bTime.day;
-              if (aUnit != bUnit) return aUnit.compareTo(bUnit);
-              return (aTime.hour * 60 + aTime.minute)
-                  .compareTo(bTime.hour * 60 + bTime.minute);
-            }
-          case 'Yearly':
-            {
-              if (aTime.month != bTime.month) {
-                return aTime.month.compareTo(bTime.month);
-              }
-              if (aTime.day != bTime.day) {
-                return aTime.day.compareTo(bTime.day);
-              }
-              return (aTime.hour * 60 + aTime.minute)
-                  .compareTo(bTime.hour * 60 + bTime.minute);
-            }
-          default:
-            return aTime.compareTo(bTime);
-        }
+        return aTime.compareTo(bTime);
       });
     });
 
@@ -109,7 +68,6 @@ class ViewRemindersScreen extends StatelessWidget {
           PopupMenuButton<String>(
             onSelected: (value) async {
               if (value == 'import') {
-                // Implement import functionality
                 await runWithLoadingDialog(
                   context: context,
                   message: "Importing reminders...",
@@ -130,7 +88,7 @@ class ViewRemindersScreen extends StatelessWidget {
         stream: _db.collection("reminders").snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(child: LoadingIndicator()); // Shared loading widget
+            return const Center(child: LoadingIndicator());
           }
 
           final grouped = _groupReminders(snapshot.data!.docs);
