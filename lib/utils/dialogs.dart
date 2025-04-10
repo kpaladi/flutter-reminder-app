@@ -12,6 +12,8 @@ Future<void> runWithLoadingDialog({
     showLoadingDialog(context, message);
   });
 
+  await Future.delayed(Duration.zero);
+
   try {
     await task();
   } finally {

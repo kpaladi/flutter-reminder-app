@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:reminder_app/models/reminder_model.dart';
-import 'package:reminder_app/screens/add_reminder_screen.dart';
-import 'package:reminder_app/screens/edit_reminder_screen.dart'; // ✅ Import this
+import 'package:reminder_app/screens/add_edit_reminder_screen.dart';
 import 'package:reminder_app/screens/settings_screen.dart';
 import 'package:reminder_app/screens/view_reminders_screen.dart';
 import 'package:reminder_app/services/initialize_notifications.dart';
@@ -105,10 +104,10 @@ class ReminderApp extends StatelessWidget {
 
       // ✅ Add this route handler
       onGenerateRoute: (settings) {
-        if (settings.name == '/edit') {
+        if (settings.name == '/add-edit') {
           final reminder = settings.arguments as Reminder;
           return MaterialPageRoute(
-            builder: (context) => EditReminderScreen(reminder: reminder),
+            builder: (context) => AddEditReminderScreen(reminder: reminder),
           );
         }
         return null;
@@ -216,7 +215,7 @@ class HomeScreenState extends State<HomeScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const AddReminderScreen()),
+                        builder: (context) => const AddEditReminderScreen()),
                   );
                 },
               ),

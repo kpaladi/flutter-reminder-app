@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/reminder_model.dart';
+import '../services/export_csv.dart';
 import '../services/notification_service.dart';
 import '../services/import_csv.dart';
 import '../utils/dialogs.dart';
@@ -13,6 +14,29 @@ class ViewRemindersScreen extends StatelessWidget {
   final _db = FirebaseFirestore.instance;
 
   ViewRemindersScreen({super.key});
+
+  Future<void> _exportReminders(BuildContext context) async {
+    await Future.delayed(Duration.zero); // give UI time to show loading dialog
+
+    try {
+      final snapshot = await _db.collection("reminders").get();
+      final reminders = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['reminder_id'] = doc.id; // Include document ID
+        return data;
+      }).toList();
+
+      await exportToCsv(context, reminders); // 🔹 Make sure this is imported from export_csv.dart
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Reminders exported successfully.")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Export failed: $e")),
+      );
+    }
+  }
 
   Reminder _mapDocToReminder(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -64,25 +88,6 @@ class ViewRemindersScreen extends StatelessWidget {
     return GradientScaffold(
       appBar: AppBar(
         title: const Text("View Reminders"),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              if (value == 'import') {
-                await runWithLoadingDialog(
-                  context: context,
-                  message: "Importing reminders...",
-                  task: () => importFromCsv(context),
-                );
-              }
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem<String>(
-                value: 'import',
-                child: Text('Import from CSV'),
-              ),
-            ],
-          ),
-        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _db.collection("reminders").snapshots(),
@@ -103,7 +108,7 @@ class ViewRemindersScreen extends StatelessWidget {
               onEdit: (reminder) {
                 Navigator.pushNamed(
                   context,
-                  '/edit',
+                  '/add-edit',
                   arguments: reminder,
                 );
               },
@@ -119,7 +124,9 @@ class ViewRemindersScreen extends StatelessWidget {
           );
         },
       ),
+
       floatingActionButton: ReminderExportFAB(db: _db),
+
     );
   }
 }
