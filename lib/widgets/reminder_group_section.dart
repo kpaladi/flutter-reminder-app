@@ -49,7 +49,7 @@ class ReminderGroupSection extends StatelessWidget {
       header: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        color: theme.primaryColorDark.withOpacity(0.9),
+        color: theme.primaryColorDark.withValues(alpha: 1),
         child: Text(
           groupTitle,
           style: theme.textTheme.titleLarge?.copyWith(

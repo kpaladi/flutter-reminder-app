@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../models/reminder_model.dart'; // ✅ Import updated Reminder model
@@ -11,35 +10,23 @@ class NotificationService {
 
   final String _channelId = 'reminder_channel_darahaas_v3';
 
-  Future<void> _saveScheduledReminder(String id) async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> scheduledReminders =
-        prefs.getStringList('scheduled_reminders') ?? [];
-
-    if (!scheduledReminders.contains(id)) {
-      scheduledReminders.add(id);
-      await prefs.setStringList('scheduled_reminders', scheduledReminders);
-    }
-  }
-
   Future<void> scheduleNotification(Reminder reminder) async {
-    final int notifId = reminder.id.hashCode;
 
     final repeatType = reminder.repeatType?.toLowerCase();
 
     DateTimeComponents? matchComponents;
-    if (repeatType == 'day') {
+    if (repeatType == 'daily') {
       matchComponents = DateTimeComponents.time;
-    } else if (repeatType == 'week') {
+    } else if (repeatType == 'weekly') {
       matchComponents = DateTimeComponents.dayOfWeekAndTime;
-    } else if (repeatType == 'month') {
+    } else if (repeatType == 'monthly') {
       matchComponents = DateTimeComponents.dayOfMonthAndTime;
-    } else if (repeatType == 'year') {
+    } else if (repeatType == 'yearly') {
       matchComponents = DateTimeComponents.dateAndTime;
     }
 
     tz.TZDateTime scheduledTime = tz.TZDateTime.from(
-      reminder.timestamp ?? DateTime.now(),
+      reminder.scheduledTime ?? DateTime.now(),
       tz.local,
     );
 
@@ -47,17 +34,17 @@ class NotificationService {
     final now = tz.TZDateTime.now(tz.local);
     if (scheduledTime.isBefore(now)) {
       switch (repeatType) {
-        case 'day':
+        case 'daily':
           while (scheduledTime.isBefore(now)) {
             scheduledTime = scheduledTime.add(const Duration(days: 1));
           }
           break;
-        case 'week':
+        case 'weekly':
           while (scheduledTime.isBefore(now)) {
             scheduledTime = scheduledTime.add(const Duration(days: 7));
           }
           break;
-        case 'month':
+        case 'monthly':
           while (scheduledTime.isBefore(now)) {
             scheduledTime = tz.TZDateTime(
               scheduledTime.location,
@@ -69,7 +56,7 @@ class NotificationService {
             );
           }
           break;
-        case 'year':
+        case 'yearly':
           while (scheduledTime.isBefore(now)) {
             scheduledTime = tz.TZDateTime(
               scheduledTime.location,
@@ -81,14 +68,19 @@ class NotificationService {
             );
           }
           break;
-        case 'only once':
+        case 'once':
           debugPrint("⚠️ Skipping one-time reminder in the past: ${reminder.title}");
           return;
+        default: {
+          debugPrint("⚠️ Skipping Unknown $repeatType reminder in the past: ${reminder.title}");
+          return;
+        }
       }
     }
 
+
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      notifId,
+      reminder.notification_id,
       reminder.title,
       reminder.description,
       scheduledTime,
@@ -107,7 +99,7 @@ class NotificationService {
           autoCancel: false,
           actions: <AndroidNotificationAction>[
             AndroidNotificationAction(
-              'snooze_action_$notifId',
+              'snooze_action_${reminder.notification_id}',
               'Tap to snooze',
               showsUserInterface: true,
             ),
@@ -116,26 +108,18 @@ class NotificationService {
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: matchComponents,
-      payload: '${reminder.id}|${reminder.title}|${reminder.description}',
+      payload: '${reminder.reminder_id}|${reminder.title}|${reminder.description}',
     );
 
-    debugPrint("📅 Scheduled reminder ID: ${reminder.id.hashCode} at $scheduledTime (repeat: $repeatType)");
-    await _saveScheduledReminder(reminder.id);
+    debugPrint("📅 Scheduled reminder ID: ${reminder.reminder_id} at $scheduledTime (repeat: $repeatType)");
   }
 
-  Future<void> cancelNotification(String reminderId) async {
-    final int notificationId = reminderId.hashCode;
 
-    await flutterLocalNotificationsPlugin.cancel(notificationId);
+  Future<void> cancelNotification(int notification_id) async {
 
-    final prefs = await SharedPreferences.getInstance();
-    List<String> scheduledReminders =
-        prefs.getStringList('scheduled_reminders') ?? [];
+    await flutterLocalNotificationsPlugin.cancel(notification_id);
+    debugPrint("❌ Cancelled notification for $notification_id");
 
-    scheduledReminders.remove(reminderId);
-    await prefs.setStringList('scheduled_reminders', scheduledReminders);
-
-    debugPrint("❌ Cancelled notification for $reminderId (notification ID: $notificationId)");
   }
-
 }
+

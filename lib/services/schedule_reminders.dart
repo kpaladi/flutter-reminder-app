@@ -20,16 +20,16 @@ Future<void> scheduleAllReminders(BuildContext context) async {
     if (data['timestamp'] != null) {
       final reminder = Reminder.fromMap(data, doc.id);
 
-      if (reminder.repeatType == null || reminder.repeatType == 'only once') {
+      if (reminder.repeatType == null || reminder.repeatType == 'once') {
         // One-time reminder
         await NotificationService().scheduleNotification(reminder);
-        debugPrint("📅 One-time: '${reminder.title}' at ${DateFormat('dd-MM-yyyy HH:mm').format(reminder.timestamp!)}");
+        debugPrint("📅 One-time: '${reminder.title}' at ${DateFormat('dd-MM-yyyy HH:mm').format(reminder.scheduledTime!)}");
         scheduledCount++;
       } else {
         // Repeating reminder — schedule only one instance for now
-        final instance = reminder.copyWith(timestamp: reminder.timestamp);
+        final instance = reminder.copyWith(scheduledTime: reminder.scheduledTime);
         await NotificationService().scheduleNotification(instance);
-        debugPrint("🔁 Repeats (${reminder.repeatType}): '${reminder.title}' at ${DateFormat('dd-MM-yyyy HH:mm').format(reminder.timestamp!)}");
+        debugPrint("🔁 Repeats (${reminder.repeatType}): '${reminder.title}' at ${DateFormat('dd-MM-yyyy HH:mm').format(reminder.scheduledTime!)}");
         scheduledCount++;
       }
     } else {

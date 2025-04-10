@@ -75,24 +75,16 @@ Future<void> _requestPermissions() async {
   }
 }
 
-Future<void> clearAllScheduledReminders() async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.remove('scheduled_reminders');
-  debugPrint("🧹 Cleared scheduled reminders from SharedPreferences.");
-}
-
 Future<int> fetchAndScheduleReminders() async {
   final FirebaseFirestore db = FirebaseFirestore.instance;
   final snapshot = await db.collection("reminders").get();
-
-  await clearAllScheduledReminders();
 
   int scheduledCount = 0;
 
   for (var doc in snapshot.docs) {
     final reminder = Reminder.fromMap(doc.data());
 
-    if (reminder.timestamp != null) {
+    if (reminder.scheduledTime != null) {
       await NotificationService().scheduleNotification(reminder);
       scheduledCount++;
     }

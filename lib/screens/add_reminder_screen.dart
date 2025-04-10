@@ -1,98 +1,54 @@
-import 'package:csv/csv.dart';
-import 'package:file_selector/file_selector.dart';
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:reminder_app/services/notification_service.dart';
+import 'package:flutter/material.dart';
 import '../models/reminder_model.dart';
+import '../services/import_csv.dart';
+import '../services/notification_service.dart';
 import '../utils/dialogs.dart';
 import '../widgets/gradient_scaffold.dart';
+import '../widgets/shared_widgets.dart'; // Import the shared widgets
 
 class AddReminderScreen extends StatefulWidget {
   const AddReminderScreen({super.key});
 
   @override
-  AddReminderScreenState createState() => AddReminderScreenState();
+  State<AddReminderScreen> createState() => _AddReminderScreenState();
 }
 
-class AddReminderScreenState extends State<AddReminderScreen> {
-  final TextEditingController titleController = TextEditingController();
-  final TextEditingController descriptionController = TextEditingController();
+class _AddReminderScreenState extends State<AddReminderScreen> {
+  final titleController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final FocusNode _titleFocusNode = FocusNode();
 
   DateTime? selectedDateTime;
-  String? repeatType = 'only once';
-
+  String repeatType = 'once';
   bool hasChanges = false;
 
-  @override
-  void initState() {
-    super.initState();
-    titleController.addListener(_onFormChanged);
-    descriptionController.addListener(_onFormChanged);
-  }
-
-  void _onFormChanged() {
-    setState(() {
-      hasChanges = titleController.text.isNotEmpty ||
-          descriptionController.text.isNotEmpty ||
-          selectedDateTime != null ||
-          repeatType != 'only once';
-    });
-  }
-
-  void addReminder() async {
-    if (titleController.text.isEmpty ||
-        descriptionController.text.isEmpty ||
-        selectedDateTime == null) {
-      return;
-    }
-
-    DocumentReference docRef =
-    FirebaseFirestore.instance.collection('reminders').doc();
-
-    final reminder = Reminder(
-      id: docRef.id,
-      title: titleController.text.trim(),
-      description: descriptionController.text.trim(),
-      timestamp: selectedDateTime!,
-      repeatType: repeatType,
-    );
-
-    await docRef.set(reminder.toMap());
-
-    NotificationService().scheduleNotification(reminder);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Reminder Added!")),
-      );
-    }
-
-    titleController.clear();
-    descriptionController.clear();
-    setState(() {
-      selectedDateTime = null;
-      repeatType = 'only once';
-      hasChanges = false;
-    });
-  }
-
   void pickDateTime() async {
-    DateTime? pickedDate = await showDatePicker(
+    // Pick the date first
+    final pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: DateTime.now().add(const Duration(minutes: 1)),  // Start with 1 minute in the future
       firstDate: DateTime.now(),
-      lastDate: DateTime(2101),
+      lastDate: DateTime(2100),
     );
 
-    if (!mounted || pickedDate == null) return;
+    if (pickedDate == null) return; // If the user cancels, return
 
-    TimeOfDay? pickedTime = await showTimePicker(
+    // Get the current time and set it to one minute in the future
+    final now = DateTime.now();
+    final initialTime = TimeOfDay(
+      hour: now.hour,
+      minute: now.minute + 1, // One minute after the current time
+    );
+
+    final pickedTime = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: initialTime, // Use the current time plus one minute
     );
 
-    if (!mounted || pickedTime == null) return;
+    if (pickedTime == null) return; // If the user cancels, return
 
+    // Now update the date and time using the selected date and time
     setState(() {
       selectedDateTime = DateTime(
         pickedDate.year,
@@ -101,95 +57,62 @@ class AddReminderScreenState extends State<AddReminderScreen> {
         pickedTime.hour,
         pickedTime.minute,
       );
-      _onFormChanged();
     });
   }
 
+  void _onFormChanged() {
+    setState(() {
+      hasChanges = true;
+    });
+  }
 
-  Future<void> importFromCsv(BuildContext context) async {
-    try {
-
-      const XTypeGroup typeGroup = XTypeGroup(
-        label: 'CSV',
-        extensions: ['csv'],
+  void addReminder() async {
+    final now = DateTime.now();
+    if (selectedDateTime == null || selectedDateTime!.isBefore(now)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a future date and time.")),
       );
+      return;
+    }
 
-      final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
-      if (file == null) {
-        return;
-      }
+    final docRef = FirebaseFirestore.instance.collection('reminders').doc();
+    final reminder = Reminder(
+      reminder_id: docRef.id,
+      title: titleController.text.trim(),
+      description: descriptionController.text.trim(),
+      scheduledTime: selectedDateTime!,
+      repeatType: repeatType,
+      notification_id: Reminder.generateStableId(docRef.id),
+    );
 
-      final input = await file.readAsString();
-      final rows = const CsvToListConverter().convert(input);
-
-      if (rows.isEmpty || rows[0].length < 3) {
-        throw FormatException('Invalid CSV structure');
-      }
-
-      int addedCount = 0;
-      int duplicateCount = 0;
-
-      for (int i = 1; i < rows.length; i++) {
-        final row = rows[i];
-        final title = row[0]?.toString() ?? '';
-        final description = row[1]?.toString() ?? '';
-        final timestampStr = row[2]?.toString() ?? '';
-        final repeatType = row.length > 3 ? row[3]?.toString() : 'only once';
-
-        if (title.isEmpty || timestampStr.isEmpty) continue;
-        final timestamp = DateTime.tryParse(timestampStr);
-        if (timestamp == null) continue;
-
-        final query = await FirebaseFirestore.instance
-            .collection('reminders')
-            .where('title', isEqualTo: title)
-            .where('description', isEqualTo: description)
-            .where('repeatType', isEqualTo: repeatType)
-            .get();
-
-        if (query.docs.isNotEmpty) {
-          duplicateCount++;
-          continue;
-        }
-
-        final reminder = Reminder(
-          id: '',
-          title: title,
-          description: description,
-          timestamp: timestamp,
-          repeatType: repeatType,
-        );
-
-        final docRef = await FirebaseFirestore.instance
-            .collection('reminders')
-            .add(reminder.toMap());
-
-        final savedReminder = reminder.copyWith(id: docRef.id);
-        await NotificationService().scheduleNotification(savedReminder);
-
-        addedCount++;
-      }
+    try {
+      await docRef.set(reminder.toMap());
+      await NotificationService().scheduleNotification(reminder);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "✅ Imported $addedCount reminders, ignored $duplicateCount duplicates",
-            ),
-          ),
+          const SnackBar(content: Text("✅ Reminder added!")),
         );
       }
 
-    } catch (e) { // ✅ catch is now correctly outside the try
-      debugPrint("❌ Import failed: $e");
+      setState(() {
+        hasChanges = false;
+        titleController.clear();
+        descriptionController.clear();
+        selectedDateTime = null;
+        repeatType = 'once';
+      });
+
+      FocusScope.of(context).requestFocus(_titleFocusNode);
+    } catch (e) {
+      debugPrint("❌ Failed to add reminder: $e");
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ Import failed")),
+          const SnackBar(content: Text("❌ Failed to add reminder.")),
         );
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +133,7 @@ class AddReminderScreenState extends State<AddReminderScreen> {
                 );
               }
             },
-            itemBuilder: (BuildContext context) => [
+            itemBuilder: (_) => [
               const PopupMenuItem<String>(
                 value: 'import',
                 child: Text('Import from CSV'),
@@ -223,98 +146,53 @@ class AddReminderScreenState extends State<AddReminderScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              textCapitalization: TextCapitalization.sentences,
+            AppTextField(
               controller: titleController,
-              decoration: InputDecoration(
-                labelText: "Title",
-                labelStyle: TextStyle(color: theme.colorScheme.primary),
-                border: const OutlineInputBorder(),
-              ),
-              cursorColor: theme.colorScheme.primary,
+              label: "Title",
+              focusNode: _titleFocusNode,
+              isFormField: true, // Use form field validation here
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a title';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
-            TextField(
-              textCapitalization: TextCapitalization.sentences,
+            AppTextField(
               controller: descriptionController,
-              decoration: InputDecoration(
-                labelText: "Description",
-                labelStyle: TextStyle(color: theme.colorScheme.primary),
-                border: const OutlineInputBorder(),
-              ),
-              cursorColor: theme.colorScheme.primary,
+              label: "Description",
+              isFormField: false, // No validation needed here
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
+            buildDateTimePickerButton(
+              context: context,
               onPressed: pickDateTime,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                selectedDateTime == null
-                    ? "Pick Date & Time"
-                    : "Selected: ${selectedDateTime!.toLocal().toString()}",
-              ),
+              selectedDateTime: selectedDateTime,
             ),
             const SizedBox(height: 24),
             if (selectedDateTime != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Repeat Every",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
+                  const Text("Repeat Every", style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
+                  AppDropdown(
+                    label: "Type",
                     value: repeatType,
-                    onChanged: (String? newValue) {
+                    onChanged: (newValue) {
                       setState(() {
                         repeatType = newValue!;
                         _onFormChanged();
                       });
                     },
-                    items: <String>[
-                      'only once',
-                      'day',
-                      'week',
-                      'month',
-                      'year'
-                    ].map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    decoration: InputDecoration(
-                      labelText: "Type",
-                      labelStyle: TextStyle(color: theme.colorScheme.primary),
-                      border: const OutlineInputBorder(),
-                    ),
-                    dropdownColor: theme.cardColor,
+                    items: const ['once', 'daily', 'weekly', 'monthly', 'yearly'],
                   ),
                 ],
               ),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
+            AppSubmitButton(
               onPressed: hasChanges ? addReminder : null,
-              icon: const Icon(Icons.check), // Also updated icon for clarity
-              label: const Text("Submit"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: hasChanges
-                    ? theme.colorScheme.primary
-                    : theme.disabledColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
             ),
           ],
         ),
@@ -328,6 +206,7 @@ class AddReminderScreenState extends State<AddReminderScreen> {
     descriptionController.removeListener(_onFormChanged);
     titleController.dispose();
     descriptionController.dispose();
+    _titleFocusNode.dispose();
     super.dispose();
   }
 }

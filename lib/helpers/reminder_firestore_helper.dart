@@ -8,11 +8,12 @@ Reminder mapDocToReminder(DocumentSnapshot doc) {
   final data = doc.data() as Map<String, dynamic>;
 
   return Reminder(
-    id: doc.id,
+    reminder_id: doc.id,
     title: data['title'] ?? '',
     description: data['description'] ?? '',
-    timestamp: (data['timestamp'] as Timestamp?)?.toDate(),
+    scheduledTime: (data['timestamp'] as Timestamp?)?.toDate(),
     repeatType: data['repeatType'],
+    notification_id: data['notification_id'] ?? Reminder.generateStableId(doc.id),
   );
 }
 
@@ -29,15 +30,15 @@ Map<String, List<Reminder>> groupAndSortReminders(List<Reminder> reminders) {
   for (var reminder in reminders) {
     final type = reminder.repeatType?.toLowerCase();
 
-    if (type == null || type.isEmpty || type == 'only once') {
+    if (type == null || type.isEmpty || type == 'once') {
       grouped['One-Time']!.add(reminder);
-    } else if (type == 'day') {
+    } else if (type == 'daily') {
       grouped['Daily']!.add(reminder);
-    } else if (type == 'week') {
+    } else if (type == 'weekly') {
       grouped['Weekly']!.add(reminder);
-    } else if (type == 'month') {
+    } else if (type == 'monthly') {
       grouped['Monthly']!.add(reminder);
-    } else if (type == 'year') {
+    } else if (type == 'yearly') {
       grouped['Yearly']!.add(reminder);
     } else {
       grouped['Others']!.add(reminder);
@@ -46,8 +47,8 @@ Map<String, List<Reminder>> groupAndSortReminders(List<Reminder> reminders) {
 
   grouped.forEach((key, list) {
     list.sort((a, b) {
-      final aTime = a.timestamp ?? DateTime(2100);
-      final bTime = b.timestamp ?? DateTime(2100);
+      final aTime = a.scheduledTime ?? DateTime(2100);
+      final bTime = b.scheduledTime ?? DateTime(2100);
 
       switch (key) {
         case 'One-Time':

@@ -2,21 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/reminder_model.dart';
+import '../services/import_csv.dart';
+import '../services/notification_service.dart';
+import '../utils/dialogs.dart';
 import '../widgets/gradient_scaffold.dart';
 import '../widgets/reminder_export_fab.dart';
 import '../widgets/reminder_group_section.dart';
-
+import '../widgets/shared_widgets.dart';  // Import your shared widgets
 
 class ViewRemindersScreen extends StatelessWidget {
   final _db = FirebaseFirestore.instance;
 
   ViewRemindersScreen({super.key});
 
+  // Mapping document to Reminder model
   Reminder _mapDocToReminder(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Reminder.fromMap(data, doc.id);
   }
 
+  // Grouping reminders based on their repeat type
   Map<String, List<Reminder>> _groupReminders(List<DocumentSnapshot> docs) {
     Map<String, List<Reminder>> groupedReminders = {
       'One-Time': [],
@@ -31,26 +36,27 @@ class ViewRemindersScreen extends StatelessWidget {
       final reminder = _mapDocToReminder(doc);
       final type = reminder.repeatType?.toLowerCase();
 
-      if (type == null || type.isEmpty || type == 'only once') {
+      // Group reminders based on repeatType
+      if (type == null || type.isEmpty || type == 'once') {
         groupedReminders['One-Time']!.add(reminder);
-      } else if (type == 'day') {
+      } else if (type == 'daily') {
         groupedReminders['Daily']!.add(reminder);
-      } else if (type == 'week') {
+      } else if (type == 'weekly') {
         groupedReminders['Weekly']!.add(reminder);
-      } else if (type == 'month') {
+      } else if (type == 'monthly') {
         groupedReminders['Monthly']!.add(reminder);
-      } else if (type == 'year') {
+      } else if (type == 'yearly') {
         groupedReminders['Yearly']!.add(reminder);
       } else {
         groupedReminders['Others']!.add(reminder);
       }
     }
 
-    // Sort each group
+    // Sort each group by scheduled time
     groupedReminders.forEach((key, list) {
       list.sort((a, b) {
-        final aTime = a.timestamp ?? DateTime(2100);
-        final bTime = b.timestamp ?? DateTime(2100);
+        final aTime = a.scheduledTime ?? DateTime(2100);
+        final bTime = b.scheduledTime ?? DateTime(2100);
 
         switch (key) {
           case 'One-Time':
@@ -96,14 +102,36 @@ class ViewRemindersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return GradientScaffold(
-      appBar: AppBar(title: const Text("View Reminders")),
+      appBar: AppBar(
+        title: const Text("View Reminders"),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'import') {
+                // Implement import functionality
+                await runWithLoadingDialog(
+                  context: context,
+                  message: "Importing reminders...",
+                  task: () => importFromCsv(context),
+                );
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem<String>(
+                value: 'import',
+                child: Text('Import from CSV'),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _db.collection("reminders").snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData) {
+            return const Center(child: LoadingIndicator()); // Shared loading widget
+          }
 
           final grouped = _groupReminders(snapshot.data!.docs);
 
@@ -122,7 +150,8 @@ class ViewRemindersScreen extends StatelessWidget {
                 );
               },
               onDelete: (reminder) async {
-                await _db.collection("reminders").doc(reminder.id).delete();
+                await _db.collection("reminders").doc(reminder.reminder_id).delete();
+                await NotificationService().cancelNotification(reminder.notification_id);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Reminder deleted")),
                 );

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/reminder_model.dart';
 import '../services/whatsapp_service.dart' as WhatsAppService;
-import '../utils/date_utils.dart';
 import '../utils/reminder_utils.dart';
 
 class ReminderCard extends StatelessWidget {
@@ -54,7 +53,7 @@ class ReminderCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _buildRepeatSummary(reminder),
+                    buildRepeatSummary(reminder),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: isPast ? Colors.grey.shade500 : Colors.grey[700],
                     ),
@@ -87,17 +86,5 @@ class ReminderCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _buildRepeatSummary(Reminder reminder) {
-    final ts = reminder.timestamp;
-    if (ts == null) return "No time set";
-
-    final type = reminder.repeatType;
-    if (type == null || type == "only once") {
-      return "Once at ${formatTime(ts)} on ${formatDate(ts)}";
-    }
-
-    return "Every ${type.toLowerCase()} at ${formatTime(ts)}";
   }
 }

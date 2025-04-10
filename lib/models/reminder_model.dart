@@ -1,58 +1,69 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Reminder {
-  final String id;
+  final String reminder_id; // Firebase document ID
   final String title;
   final String description;
-  final DateTime? timestamp;
-  final String? repeatType; // e.g., "daily", "weekly", "monthly"
+  final DateTime? scheduledTime; // First occurrence of the reminder
+  final String? repeatType; // e.g., 'once', 'daily', 'weekly', 'monthly', 'yearly'
+  final int notification_id; // Integer ID for local notifications
 
   Reminder({
-    required this.id,
+    required this.reminder_id,
     required this.title,
     required this.description,
-    this.timestamp,
-    this.repeatType,
+    required this.scheduledTime,
+    required this.repeatType,
+    required this.notification_id,
   });
 
-  /// Use this for local notification ID (int)
-  int get notificationId => id.hashCode.abs();
+  /// Generate a stable integer ID from reminder_id (used for notifications)
+  static int generateStableId(String reminderId) => reminderId.hashCode.abs();
 
+  /// Factory method to create Reminder from Firestore document/map
   factory Reminder.fromMap(Map<String, dynamic> data, [String? id]) {
     return Reminder(
-      id: id ?? '', // fallback if ID is null
+      reminder_id: id ?? '',
       title: data['title'] ?? '',
       description: data['description'] ?? '',
-      timestamp: data['timestamp'] is Timestamp
-          ? (data['timestamp'] as Timestamp).toDate()
+      scheduledTime: data['scheduledTime'] is Timestamp
+          ? (data['scheduledTime'] as Timestamp).toDate()
           : null,
       repeatType: data['repeatType'],
+      notification_id: data['notification_id'] ??
+          generateStableId(id ?? ''), // fallback if missing
     );
   }
 
+  /// Convert Reminder to Firestore-compatible map
   Map<String, dynamic> toMap() {
     return {
       'title': title,
       'description': description,
-      'timestamp': timestamp != null ? Timestamp.fromDate(timestamp!) : null,
+      'scheduledTime': scheduledTime != null
+          ? Timestamp.fromDate(scheduledTime!)
+          : null,
       'repeatType': repeatType,
+      'notification_id': notification_id,
     };
   }
 
+  /// Create a copy with overrides (immutability)
   Reminder copyWith({
     String? id,
     String? title,
     String? description,
-    DateTime? timestamp,
+    DateTime? scheduledTime,
     String? repeatType,
+    int? notification_id,
   }) {
     return Reminder(
-      id: id ?? this.id,
+      reminder_id: id ?? this.reminder_id,
       title: title ?? this.title,
       description: description ?? this.description,
-      timestamp: timestamp ?? this.timestamp,
+      scheduledTime: scheduledTime ?? this.scheduledTime,
       repeatType: repeatType ?? this.repeatType,
+      notification_id: notification_id ?? this.notification_id,
     );
   }
-
 }

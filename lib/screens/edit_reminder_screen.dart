@@ -26,7 +26,7 @@ class EditReminderScreenState extends State<EditReminderScreen> {
 
   late String _initialTitle;
   late String _initialDescription;
-  late DateTime? _initialTimestamp;
+  late DateTime? _initialscheduledTime;
   String? _initialRepeatType;
 
   @override
@@ -35,12 +35,12 @@ class EditReminderScreenState extends State<EditReminderScreen> {
     _titleController = TextEditingController(text: widget.reminder.title);
     _descriptionController = TextEditingController(text: widget.reminder.description);
 
-    _selectedDateTime = widget.reminder.timestamp;
-    _repeatType = widget.reminder.repeatType ?? 'only once';
+    _selectedDateTime = widget.reminder.scheduledTime;
+    _repeatType = widget.reminder.repeatType ?? 'once';
 
     _initialTitle = widget.reminder.title;
     _initialDescription = widget.reminder.description;
-    _initialTimestamp = widget.reminder.timestamp;
+    _initialscheduledTime = widget.reminder.scheduledTime;
     _initialRepeatType = _repeatType;
 
     _titleController.addListener(_checkForChanges);
@@ -52,7 +52,7 @@ class EditReminderScreenState extends State<EditReminderScreen> {
     _hasChanges =
         _titleController.text != _initialTitle ||
             _descriptionController.text != _initialDescription ||
-            _selectedDateTime != _initialTimestamp ||
+            _selectedDateTime != _initialscheduledTime ||
             _repeatType != _initialRepeatType;
     setState(() {});
   }
@@ -94,19 +94,20 @@ class EditReminderScreenState extends State<EditReminderScreen> {
       return;
     }
 
-    await NotificationService().cancelNotification(widget.reminder.id);
+    await NotificationService().cancelNotification(widget.reminder.notification_id);
 
     Reminder updated = Reminder(
-      id: widget.reminder.id,
+      reminder_id: widget.reminder.reminder_id,
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
-      timestamp: _selectedDateTime!,
+      scheduledTime: _selectedDateTime!,
       repeatType: _repeatType,
+      notification_id: widget.reminder.notification_id,
     );
 
     await FirebaseFirestore.instance
         .collection("reminders")
-        .doc(updated.id)
+        .doc(updated.reminder_id)
         .update(updated.toMap());
 
     NotificationService().scheduleNotification(updated);
@@ -120,7 +121,7 @@ class EditReminderScreenState extends State<EditReminderScreen> {
     setState(() {
       _initialTitle = _titleController.text;
       _initialDescription = _descriptionController.text;
-      _initialTimestamp = _selectedDateTime!;
+      _initialscheduledTime = _selectedDateTime!;
       _initialRepeatType = _repeatType;
       _hasChanges = false;
     });
@@ -131,8 +132,8 @@ class EditReminderScreenState extends State<EditReminderScreen> {
     setState(() {
       _titleController.text = r.title;
       _descriptionController.text = r.description;
-      _selectedDateTime = r.timestamp;
-      _repeatType = r.repeatType ?? 'only once';
+      _selectedDateTime = r.scheduledTime;
+      _repeatType = r.repeatType ?? 'once';
       _hasChanges = false;
     });
   }
@@ -177,7 +178,7 @@ class EditReminderScreenState extends State<EditReminderScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    child: const Text("Pick Date & Time"),
+                    child: const Text("Schedule"),
                   ),
                   const Spacer(),
                   Text(
@@ -204,7 +205,7 @@ class EditReminderScreenState extends State<EditReminderScreen> {
                               _checkForChanges();
                             });
                           },
-                          items: <String>['only once', 'day', 'week', 'month', 'year']
+                          items: <String>['once', 'daily', 'weekly', 'monthly', 'yearly']
                               .map((String value) => DropdownMenuItem(
                             value: value,
                             child: Text(value),
