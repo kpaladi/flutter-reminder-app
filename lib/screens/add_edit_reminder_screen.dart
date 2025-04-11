@@ -17,6 +17,8 @@ class AddEditReminderScreen extends StatefulWidget {
   State<AddEditReminderScreen> createState() => _AddEditReminderScreenState();
 }
 
+// No changes in imports or class declaration
+
 class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
@@ -26,7 +28,6 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
   String repeatType = 'once';
   bool hasChanges = false;
 
-  // Flag to determine if we're editing an existing reminder
   bool get isEditing => widget.reminder != null;
 
   late String initialRepeatType;
@@ -37,11 +38,12 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
   @override
   void initState() {
     super.initState();
+    final reminder = widget.reminder;
 
-    initialTitle = widget.reminder?.title ?? '';
-    initialDescription = widget.reminder?.description ?? '';
-    initialDateTime = widget.reminder?.scheduledTime;
-    initialRepeatType = widget.reminder?.repeatType ?? 'once';
+    initialTitle = reminder?.title ?? '';
+    initialDescription = reminder?.description ?? '';
+    initialDateTime = reminder?.scheduledTime;
+    initialRepeatType = reminder?.repeatType ?? 'once';
 
     titleController.text = initialTitle;
     descriptionController.text = initialDescription;
@@ -53,25 +55,23 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
   }
 
   void pickDateTime() async {
+    final now = DateTime.now();
+
+    final DateTime initial = selectedDateTime ?? now;
+    final DateTime first = DateTime(2000); // or even earlier if needed
+
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().add(const Duration(minutes: 1)),
-      firstDate: DateTime.now(),
+      initialDate: initial,
+      firstDate: first,
       lastDate: DateTime(2100),
     );
 
     if (pickedDate == null) return;
 
-    final now = DateTime.now();
-    final initialTime = TimeOfDay(hour: now.hour, minute: now.minute + 1);
-
-    if (!mounted) {
-      return;
-    }
-
     final pickedTime = await showTimePicker(
       context: context,
-      initialTime: initialTime,
+      initialTime: TimeOfDay(hour: now.hour, minute: now.minute + 1),
     );
 
     if (pickedTime == null) return;
@@ -88,42 +88,42 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     });
   }
 
-  /*  void _onFormChanged() {
-    setState(() {
-      hasChanges = true;
-    });
-  }*/
-
   void _onFormChanged() {
-    final titleChanged = titleController.text != initialTitle;
-    final descriptionChanged = descriptionController.text != initialDescription;
-    final dateTimeChanged = selectedDateTime != initialDateTime;
-    final repeatTypeChanged = repeatType != initialRepeatType;
+    final changed = titleController.text != initialTitle ||
+        descriptionController.text != initialDescription ||
+        selectedDateTime != initialDateTime ||
+        repeatType != initialRepeatType;
 
-    setState(() {
-      hasChanges =
-          titleChanged ||
-          descriptionChanged ||
-          dateTimeChanged ||
-          repeatTypeChanged;
-    });
+    setState(() => hasChanges = changed);
   }
 
-  void saveReminder() async {
-    final now = DateTime.now();
-    if (selectedDateTime == null || selectedDateTime!.isBefore(now)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a future date and time.")),
-      );
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  bool _isFutureDate(DateTime dateTime) => dateTime.isAfter(DateTime.now());
+
+  Future<void> saveReminder() async {
+    if (selectedDateTime == null) {
+      _showSnack("Schedule Time cannot be null");
       return;
     }
 
-    final docRef =
-        isEditing
-            ? FirebaseFirestore.instance
-                .collection('reminders')
-                .doc(widget.reminder!.reminder_id)
-            : FirebaseFirestore.instance.collection('reminders').doc();
+    if (!isEditing && !_isFutureDate(selectedDateTime!)) {
+      _showSnack("Please select a future date and time.");
+      return;
+    }
+
+    if (isEditing && selectedDateTime != initialDateTime && !_isFutureDate(selectedDateTime!)) {
+      _showSnack("Please select a future date and time.");
+      return;
+    }
+
+    final docRef = isEditing
+        ? FirebaseFirestore.instance
+        .collection('reminders')
+        .doc(widget.reminder!.reminder_id)
+        : FirebaseFirestore.instance.collection('reminders').doc();
 
     final reminder = Reminder(
       reminder_id: docRef.id,
@@ -139,48 +139,39 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       await NotificationService().scheduleNotification(reminder);
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("✅ Reminder saved!")));
+        _showSnack("✅ Reminder saved!");
+        _resetToEmpty();
+        FocusScope.of(context).requestFocus(_titleFocusNode);
       }
 
-      setState(() {
-        hasChanges = false;
-        titleController.clear();
-        descriptionController.clear();
-        selectedDateTime = null;
-        repeatType = 'once';
-      });
-
-      if (!mounted) {
-        return;
-      }
-
-      FocusScope.of(context).requestFocus(_titleFocusNode);
+      Navigator.pop(context);
     } catch (e) {
       debugPrint("❌ Failed to save reminder: $e");
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("❌ Failed to save reminder.")),
-        );
-      }
+      if (mounted) _showSnack("❌ Failed to save reminder.");
     }
+  }
+
+  void _resetToEmpty() {
+    setState(() {
+      hasChanges = false;
+      titleController.clear();
+      descriptionController.clear();
+      selectedDateTime = null;
+      repeatType = 'once';
+    });
   }
 
   void _resetToInitialValues() {
     setState(() {
       hasChanges = false;
 
-      if (widget.reminder == null) {
-        titleController.clear();
-        descriptionController.clear();
-        selectedDateTime = null;
-        repeatType = 'once';
-      } else {
+      if (isEditing) {
         titleController.text = initialTitle;
         descriptionController.text = initialDescription;
         selectedDateTime = initialDateTime;
         repeatType = initialRepeatType;
+      } else {
+        _resetToEmpty();
       }
     });
   }
@@ -192,8 +183,7 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
         title: Text(isEditing ? "Edit Reminder" : "Add Reminder"),
         centerTitle: true,
         actions: [
-          // Conditionally show Import from CSV only in Add mode.
-          if (widget.reminder == null)
+          if (!isEditing)
             PopupMenuButton<String>(
               onSelected: (value) async {
                 if (value == 'import') {
@@ -204,13 +194,12 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                   );
                 }
               },
-              itemBuilder:
-                  (_) => [
-                    const PopupMenuItem<String>(
-                      value: 'import',
-                      child: Text('Import from CSV'),
-                    ),
-                  ],
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: 'import',
+                  child: Text('Import from CSV'),
+                ),
+              ],
             ),
         ],
       ),
@@ -223,12 +212,8 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
               label: "Title",
               focusNode: _titleFocusNode,
               isFormField: true,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter a title';
-                }
-                return null;
-              },
+              validator: (value) =>
+              (value == null || value.isEmpty) ? 'Please enter a title' : null,
             ),
             const SizedBox(height: 16),
             AppTextField(
@@ -243,35 +228,27 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
               selectedDateTime: selectedDateTime,
             ),
             const SizedBox(height: 24),
-            if (selectedDateTime != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Repeat Every",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
-                  AppDropdown(
-                    label: "Type",
-                    value: repeatType,
-                    onChanged: (newValue) {
-                      setState(() {
-                        repeatType = newValue!;
-                        _onFormChanged();
-                      });
-                    },
-                    items: const [
-                      'once',
-                      'daily',
-                      'weekly',
-                      'monthly',
-                      'yearly',
-                    ],
-                  ),
-                ],
+            if (selectedDateTime != null) ...[
+              const Text(
+                "Repeat Every",
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 6),
+              AppDropdown(
+                label: "Type",
+                value: repeatType,
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      repeatType = value;
+                      _onFormChanged();
+                    });
+                  }
+                },
+                items: const ['once', 'daily', 'weekly', 'monthly', 'yearly'],
+              ),
+              const SizedBox(height: 24),
+            ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -299,3 +276,4 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     super.dispose();
   }
 }
+

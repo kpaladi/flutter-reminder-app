@@ -13,11 +13,12 @@ import 'package:reminder_app/services/notification_service.dart';
 import 'package:reminder_app/services/special_permission_check.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:reminder_app/theme/app_theme.dart';
-import 'package:reminder_app/utils/dialogs.dart';
 import 'package:reminder_app/widgets/gradient_scaffold.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -98,6 +99,7 @@ class ReminderApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: appTheme,
       home: HomeScreen(),

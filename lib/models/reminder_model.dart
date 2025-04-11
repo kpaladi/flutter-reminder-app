@@ -4,7 +4,7 @@ class Reminder {
   final String reminder_id; // Firebase document ID
   final String title;
   final String description;
-  final DateTime? scheduledTime; // First occurrence of the reminder
+  late final DateTime? scheduledTime; // First occurrence of the reminder
   final String? repeatType; // e.g., 'once', 'daily', 'weekly', 'monthly', 'yearly'
   final int notification_id; // Integer ID for local notifications
 
@@ -66,4 +66,17 @@ class Reminder {
       notification_id: notification_id ?? this.notification_id,
     );
   }
+
+  factory Reminder.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Reminder(
+      reminder_id: data['reminder_id'],
+      title: data['title'],
+      description: data['description'],
+      scheduledTime: data['timestamp'],
+      repeatType: data['repeatType'],
+      notification_id: data['notification_id'],
+    );
+  }
+
 }

@@ -2,8 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'handle_snooze.dart';
-import 'notification_helper.dart';
+
+import 'handle_notification_responses.dart'; // Make sure this has handleDone, handleSnooze, handleNotificationTap
+import 'notification_helper.dart'; // Should define flutterLocalNotificationsPlugin
+import 'notification_service.dart'; // In case it’s used internally
 
 Future<void> initializeNotifications([
   void Function(NotificationResponse)? onNotificationResponse,
@@ -11,25 +13,32 @@ Future<void> initializeNotifications([
   try {
     debugPrint("🚀 Initializing Notifications...");
 
-    // Setup for Android notifications
+    // Android notification settings
     const androidSettings = AndroidInitializationSettings('ic_notification');
     final initializationSettings = InitializationSettings(android: androidSettings);
 
-    // Default action when notification is tapped
-    final didReceiveResponse = onNotificationResponse ?? (NotificationResponse response) {
-      final payload = response.payload;
-      debugPrint("🔔 Notification clicked: $payload");
+    // Default action handler
+    final didReceiveResponse = onNotificationResponse ??
+            (NotificationResponse response) async {
+          final payload = response.payload;
+          final actionId = response.actionId;
+          debugPrint("🔔 Notification clicked: $payload | Action: $actionId");
 
-      final actionId = response.actionId;
-      if (actionId != null && actionId.startsWith('snooze_action')) {
-        handleSnooze(payload);
-      }
-    };
+          if (actionId != null) {
+            if (actionId.startsWith('done_action_')) {
+              await handleDone(payload, fromNotificationTap: true);
+            } else if (actionId.startsWith('snooze_action_')) {
+              await handleSnooze(payload);
+            }
+          } else if (payload != null) {
+            handleNotificationTap(payload);
+          }
+        };
 
-    final initSuccess = (await flutterLocalNotificationsPlugin.initialize(
+    final initSuccess = await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: didReceiveResponse,
-    )) ?? false;
+    );
 
     debugPrint("✅ Notifications initialized: $initSuccess");
 
@@ -56,7 +65,6 @@ Future<void> initializeNotifications([
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
     debugPrint("✅ Time zones initialized");
-
   } catch (e, stackTrace) {
     debugPrint("❌ Error initializing notifications: $e");
     debugPrint("🪵 StackTrace: $stackTrace");

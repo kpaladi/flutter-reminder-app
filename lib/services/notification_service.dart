@@ -92,28 +92,21 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
           fullScreenIntent: true,
-          timeoutAfter: 60000,
-          playSound: true,
           sound: RawResourceAndroidNotificationSound('notification_ringtone'),
-          showWhen: true,
           autoCancel: false,
           actions: <AndroidNotificationAction>[
-            AndroidNotificationAction(
-              'snooze_action_${reminder.notification_id}',
-              'Tap to snooze',
-              showsUserInterface: true,
-            ),
-          ],
+            AndroidNotificationAction('snooze_action_${reminder.notification_id}', 'Snooze', showsUserInterface: true),
+        AndroidNotificationAction('done_action_${reminder.notification_id}', 'Done', showsUserInterface: true),
+        ],
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: matchComponents,
-      payload: '${reminder.reminder_id}|${reminder.title}|${reminder.description}',
+      payload: '${reminder.notification_id}|${reminder.reminder_id}|${reminder.title}|${reminder.description}',
     );
 
     debugPrint("📅 Scheduled reminder ID: ${reminder.reminder_id} at $scheduledTime (repeat: $repeatType)");
   }
-
 
   Future<void> cancelNotification(int notification_id) async {
 
@@ -121,5 +114,6 @@ class NotificationService {
     debugPrint("❌ Cancelled notification for $notification_id");
 
   }
+
 }
 

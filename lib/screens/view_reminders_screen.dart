@@ -75,7 +75,7 @@ class ViewRemindersScreen extends StatelessWidget {
       }
     }
 
-    final now = DateTime.now();
+/*    final now = DateTime.now();
 
     groupedReminders.forEach((key, list) {
       list.sort((a, b) {
@@ -92,7 +92,7 @@ class ViewRemindersScreen extends StatelessWidget {
         if (aExpired == bExpired) return 0;
         return aExpired ? 1 : -1; // expired goes after non-expired
       });
-    });
+    });*/
 
     return groupedReminders;
 
