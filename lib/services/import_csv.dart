@@ -5,6 +5,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:reminder_app/services/notification_service.dart';
 import '../models/reminder_model.dart';
 
+bool hasHeaderRow(List<String> row) {
+  // Normalize all entries to lowercase
+  final normalized = row.map((e) => e.trim().toLowerCase()).toList();
+
+  // Define expected header keywords
+  final expectedHeaders = ['title', 'description', 'scheduled time', 'repeat type'];
+
+  // Count how many expected headers are found in the first row
+  int matchCount = expectedHeaders.where((header) => normalized.contains(header)).length;
+
+  // Heuristic: If at least 2 known headers are found, it's likely a header row
+  return matchCount >= 2;
+}
+
 Future<void> importFromCsv(BuildContext context) async {
   try {
     const XTypeGroup typeGroup = XTypeGroup(
@@ -22,10 +36,16 @@ Future<void> importFromCsv(BuildContext context) async {
       throw FormatException('Invalid CSV structure');
     }
 
+    var startingDataRow = 0;
+    final firstRow = rows.first.map((e) => e.toString()).toList();
+    if(hasHeaderRow(firstRow)){
+      startingDataRow = 1;
+    }
+
     int addedCount = 0;
     int duplicateCount = 0;
 
-    for (int i = 1; i < rows.length; i++) {
+    for (int i = startingDataRow; i < rows.length; i++) {
       final row = rows[i];
 
       final title = row[0]?.toString().trim() ?? '';
