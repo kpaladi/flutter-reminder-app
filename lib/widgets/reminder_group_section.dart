@@ -48,13 +48,11 @@ class ReminderGroupSection extends StatelessWidget {
 
     final activeReminders = reminders
         .where((r) => !isReminderInPast(r))
-        .toList()
-      ..sort((a, b) => a.scheduledTime!.compareTo(b.scheduledTime!));
+        .toList();
 
     final pastReminders = reminders
         .where((r) => isReminderInPast(r))
-        .toList()
-      ..sort((a, b) => a.scheduledTime!.compareTo(b.scheduledTime!));
+        .toList();
 
     return StickyHeader(
       header: Container(

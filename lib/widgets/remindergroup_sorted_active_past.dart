@@ -20,39 +20,57 @@ class ReminderGroupWithSortedActiveAndPast extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
 
-    bool isInPast(Reminder r) {
+    bool isInPast(Reminder r, DateTime now) {
       final t = r.scheduledTime;
       if (t == null) return false;
+
       switch (r.repeatType?.toLowerCase()) {
         case 'once':
           return t.isBefore(now);
+
         case 'daily':
           final today = DateTime(now.year, now.month, now.day, t.hour, t.minute);
           return now.isAfter(today);
+
         case 'weekly':
-          if (now.weekday > t.weekday) return true;
-          if (now.weekday < t.weekday) return false;
-          return now.hour > t.hour || (now.hour == t.hour && now.minute > t.minute);
+          final daysDiff = (now.weekday - t.weekday + 7) % 7;
+          final thisWeek = now.subtract(Duration(days: daysDiff));
+          final occurrence = DateTime(thisWeek.year, thisWeek.month, thisWeek.day, t.hour, t.minute);
+          return now.isAfter(occurrence);
+
         case 'monthly':
-          if (now.day > t.day) return true;
-          if (now.day < t.day) return false;
-          return now.hour > t.hour || (now.hour == t.hour && now.minute > t.minute);
+          DateTime occurrence;
+          try {
+            occurrence = DateTime(now.year, now.month, t.day, t.hour, t.minute);
+          } catch (_) {
+            // Handle months with fewer days than t.day (e.g., Feb 30)
+            final lastDay = DateTime(now.year, now.month + 1, 0).day;
+            occurrence = DateTime(now.year, now.month, lastDay, t.hour, t.minute);
+          }
+          return now.isAfter(occurrence);
+
         case 'yearly':
-          if (now.month > t.month) return true;
-          if (now.month < t.month) return false;
-          if (now.day > t.day) return true;
-          if (now.day < t.day) return false;
-          return now.hour > t.hour || (now.hour == t.hour && now.minute > t.minute);
+          DateTime occurrence;
+          try {
+            occurrence = DateTime(now.year, t.month, t.day, t.hour, t.minute);
+          } catch (_) {
+            // Handle leap years or invalid dates
+            final lastDay = DateTime(now.year, t.month + 1, 0).day;
+            occurrence = DateTime(now.year, t.month, lastDay, t.hour, t.minute);
+          }
+          return now.isAfter(occurrence);
+
         default:
           return false;
       }
     }
 
+
     final List<Reminder> active = [];
     final List<Reminder> past = [];
 
     for (var r in reminders) {
-      (isInPast(r) ? past : active).add(r);
+      (isInPast(r, now) ? past : active).add(r);
     }
 
     active.sort((a, b) => _compareByNextSchedule(a, b, now));
@@ -63,7 +81,7 @@ class ReminderGroupWithSortedActiveAndPast extends StatelessWidget {
       children: [
         if (active.isNotEmpty)
           ReminderGroupSection(
-            groupTitle: '$groupTitle • Active',
+            groupTitle: '$groupTitle * Active',
             reminders: active,
             onEdit: onEdit,
             onDelete: onDelete,
