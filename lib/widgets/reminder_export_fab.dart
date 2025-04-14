@@ -25,7 +25,7 @@ class ReminderExportFAB extends StatelessWidget {
       }).toList();
 
       final rows = <List<String>>[
-        ["Title", "Description", "Scheduled Date", "Repeat Type", "ID (do not change)",],
+        ["Title", "Description", "Scheduled Time", "Repeat Type", "ID (do not change)",],
         ...reminders.map((r) => [
           r["title"] ?? "",
           r["description"] ?? "",
