@@ -4,8 +4,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../main.dart';
-import '../screens/show_reminder.dart';
-import '../screens/view_reminders_screen.dart';
 import 'notification_helper.dart';
 
 Future<void> handleSnooze(String? payload) async {

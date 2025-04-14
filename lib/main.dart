@@ -7,7 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:reminder_app/models/reminder_model.dart';
 import 'package:reminder_app/screens/add_edit_reminder_screen.dart';
 import 'package:reminder_app/screens/settings_screen.dart';
-import 'package:reminder_app/screens/show_reminder.dart';
+import 'package:reminder_app/screens/view_reminder.dart';
 import 'package:reminder_app/screens/view_reminders_screen.dart';
 import 'package:reminder_app/services/initialize_notifications.dart';
 import 'package:reminder_app/services/notification_service.dart';

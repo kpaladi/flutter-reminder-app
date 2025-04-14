@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/reminder_model.dart';
-import '../services/whatsapp_service.dart' as WhatsAppService;
+import '../services/whatsapp_service.dart' as whatsappservice;
 import 'add_edit_reminder_screen.dart';
 
 class ReminderDetailScreen extends StatelessWidget {
@@ -39,7 +38,7 @@ class ReminderDetailScreen extends StatelessWidget {
               IconButton(
                 icon: Icon(Icons.share),
                 tooltip: 'Share via WhatsApp',
-                onPressed: () => WhatsAppService.sendReminder(context: context, reminder: reminder),
+                onPressed: () => whatsappservice.sendReminder(context: context, reminder: reminder),
               ),
               IconButton(
                 icon: Icon(Icons.edit),
