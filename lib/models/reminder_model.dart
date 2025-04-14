@@ -73,7 +73,9 @@ class Reminder {
       reminder_id: doc.id,
       title: data['title'],
       description: data['description'],
-      scheduledTime: data['timestamp'],
+      scheduledTime: data['scheduledTime'] is Timestamp
+          ? (data['scheduledTime'] as Timestamp).toDate()
+          : null,
       repeatType: data['repeatType'],
       notification_id: data['notification_id'],
     );

@@ -28,7 +28,9 @@ Future<void> handleSnooze(String? payload) async {
     return;
   }
 
-  final snoozedTime = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 10));
+  final snoozedTime = tz.TZDateTime.now(
+    tz.local,
+  ).add(const Duration(minutes: 10));
 
   await flutterLocalNotificationsPlugin.zonedSchedule(
     notificationId,
@@ -43,10 +45,18 @@ Future<void> handleSnooze(String? payload) async {
         importance: Importance.high,
         priority: Priority.high,
         sound: RawResourceAndroidNotificationSound('notification_ringtone'),
-        autoCancel: false,
+        autoCancel: true,
         actions: <AndroidNotificationAction>[
-          AndroidNotificationAction('snooze_action_$notificationId', 'Snooze', showsUserInterface: true),
-          AndroidNotificationAction('view_action_$notificationId', 'View', showsUserInterface: true),
+          AndroidNotificationAction(
+            'snooze_action_$notificationId',
+            'Snooze',
+            showsUserInterface: true,
+          ),
+          AndroidNotificationAction(
+            'view_action_$notificationId',
+            'View',
+            showsUserInterface: true,
+          ),
         ],
       ),
     ),
@@ -58,34 +68,15 @@ Future<void> handleSnooze(String? payload) async {
   debugPrint("🔁 Snoozed reminder (ID: $notificationId) for 10 minutes later.");
 }
 
-Future<void> handleView(String? payload, {bool fromNotificationTap = false}) async {
-  if (payload == null || !payload.contains('|')) return;
-
-  final parts = payload.split('|');
-  if (parts.length < 2) return;
-  final reminderId = parts[1];
-    // Navigate to the reminder inside the app
-    navigatorKey.currentState?.pushNamed(
-      '/reminder-detail',
-      arguments: reminderId,
-    );
-}
-
-Future<void> handleNotificationTap(String? payload) async {
+Future<void> openReminderFromPayload(String? payload) async {
   if (payload == null || !payload.contains('|')) return;
 
   final parts = payload.split('|');
   if (parts.length < 2) return;
   final reminderId = parts[1];
 
-  // Navigate to the reminder inside the app
   navigatorKey.currentState?.pushNamed(
     '/reminder-detail',
     arguments: reminderId,
   );
 }
-
-
-
-
-

@@ -14,23 +14,26 @@ Future<void> initializeNotifications([
 
     // Android notification settings
     const androidSettings = AndroidInitializationSettings('ic_notification');
-    final initializationSettings = InitializationSettings(android: androidSettings);
+    final initializationSettings = InitializationSettings(
+      android: androidSettings,
+    );
 
     // Default action handler
-    final didReceiveResponse = onNotificationResponse ??
-            (NotificationResponse response) async {
+    final didReceiveResponse =
+        onNotificationResponse ??
+        (NotificationResponse response) async {
           final payload = response.payload;
           final actionId = response.actionId;
           debugPrint("🔔 Notification clicked: $payload | Action: $actionId");
 
           if (actionId != null) {
             if (actionId.startsWith('view_action_')) {
-              await handleView(payload, fromNotificationTap: true);
+              await openReminderFromPayload(payload);
             } else if (actionId.startsWith('snooze_action_')) {
               await handleSnooze(payload);
             }
           } else if (payload != null) {
-            handleNotificationTap(payload);
+            openReminderFromPayload(payload);
           }
         };
 
@@ -50,8 +53,11 @@ Future<void> initializeNotifications([
       sound: RawResourceAndroidNotificationSound('notification_ringtone'),
     );
 
-    final androidPlugin = flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin =
+        flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
 
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(channel);
