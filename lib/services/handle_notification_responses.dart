@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../main.dart';
+import '../screens/show_reminder.dart';
 import '../screens/view_reminders_screen.dart';
 import 'notification_helper.dart';
 
@@ -29,7 +30,7 @@ Future<void> handleSnooze(String? payload) async {
     return;
   }
 
-  final snoozedTime = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 1));
+  final snoozedTime = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 10));
 
   await flutterLocalNotificationsPlugin.zonedSchedule(
     notificationId,
@@ -47,7 +48,7 @@ Future<void> handleSnooze(String? payload) async {
         autoCancel: false,
         actions: <AndroidNotificationAction>[
           AndroidNotificationAction('snooze_action_$notificationId', 'Snooze', showsUserInterface: true),
-          AndroidNotificationAction('done_action_$notificationId', 'Done', showsUserInterface: true),
+          AndroidNotificationAction('view_action_$notificationId', 'View', showsUserInterface: true),
         ],
       ),
     ),
@@ -56,44 +57,33 @@ Future<void> handleSnooze(String? payload) async {
     payload: '$notificationId|$reminderId|$title|$description',
   );
 
-  debugPrint("🔁 Snoozed reminder (ID: $notificationId) for 1 minute later.");
+  debugPrint("🔁 Snoozed reminder (ID: $notificationId) for 10 minutes later.");
 }
 
-Future<void> handleDone(String? payload, {bool fromNotificationTap = false}) async {
+Future<void> handleView(String? payload, {bool fromNotificationTap = false}) async {
   if (payload == null || !payload.contains('|')) return;
 
   final parts = payload.split('|');
-  final notificationId = int.tryParse(parts[0]);
+  if (parts.length < 2) return;
   final reminderId = parts[1];
-
-  if (notificationId != null) {
-    await flutterLocalNotificationsPlugin.cancel(notificationId);
-    debugPrint("✅ Done: cancelled reminder with ID $notificationId");
-  }
-
-  if (fromNotificationTap) {
     // Navigate to the reminder inside the app
     navigatorKey.currentState?.pushNamed(
-      '/viewReminder',
+      '/reminder-detail',
       arguments: reminderId,
     );
-  }
 }
 
-void handleNotificationTap(String? payload) {
-  if (payload == null) return;
+Future<void> handleNotificationTap(String? payload) async {
+  if (payload == null || !payload.contains('|')) return;
 
   final parts = payload.split('|');
   if (parts.length < 2) return;
-
   final reminderId = parts[1];
 
-  // Use navigatorKey from your main app
-  navigatorKey.currentState?.push(
-    MaterialPageRoute(
-//      builder: (_) => ViewRemindersScreen(reminderId: reminderId), ToDo Open Specific reminder
-      builder: (_) => ViewRemindersScreen(),
-    ),
+  // Navigate to the reminder inside the app
+  navigatorKey.currentState?.pushNamed(
+    '/reminder-detail',
+    arguments: reminderId,
   );
 }
 

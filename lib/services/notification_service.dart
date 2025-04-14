@@ -96,7 +96,7 @@ class NotificationService {
           autoCancel: false,
           actions: <AndroidNotificationAction>[
             AndroidNotificationAction('snooze_action_${reminder.notification_id}', 'Snooze', showsUserInterface: true),
-        AndroidNotificationAction('done_action_${reminder.notification_id}', 'Done', showsUserInterface: true),
+            AndroidNotificationAction('view_action_${reminder.notification_id}', 'View', showsUserInterface: true),
         ],
         ),
       ),

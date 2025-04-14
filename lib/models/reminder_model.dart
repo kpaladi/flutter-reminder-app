@@ -70,7 +70,7 @@ class Reminder {
   factory Reminder.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Reminder(
-      reminder_id: data['reminder_id'],
+      reminder_id: doc.id,
       title: data['title'],
       description: data['description'],
       scheduledTime: data['timestamp'],

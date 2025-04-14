@@ -5,7 +5,6 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'handle_notification_responses.dart'; // Make sure this has handleDone, handleSnooze, handleNotificationTap
 import 'notification_helper.dart'; // Should define flutterLocalNotificationsPlugin
-import 'notification_service.dart'; // In case it’s used internally
 
 Future<void> initializeNotifications([
   void Function(NotificationResponse)? onNotificationResponse,
@@ -25,8 +24,8 @@ Future<void> initializeNotifications([
           debugPrint("🔔 Notification clicked: $payload | Action: $actionId");
 
           if (actionId != null) {
-            if (actionId.startsWith('done_action_')) {
-              await handleDone(payload, fromNotificationTap: true);
+            if (actionId.startsWith('view_action_')) {
+              await handleView(payload, fromNotificationTap: true);
             } else if (actionId.startsWith('snooze_action_')) {
               await handleSnooze(payload);
             }
