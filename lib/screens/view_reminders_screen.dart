@@ -20,14 +20,15 @@ class ViewRemindersScreen extends StatelessWidget {
   }
 
   Future<void> refreshRepeatReminders(context) async {
-    final snapshot = await FirebaseFirestore.instance.collection('reminders').get();
-    final reminders = snapshot.docs.map((doc) => Reminder.fromMap(doc.data())).toList();
+    final snapshot =
+        await FirebaseFirestore.instance.collection('reminders').get();
+    final reminders =
+        snapshot.docs.map((doc) => Reminder.fromMap(doc.data())).toList();
 
     int refreshedCount = 0;
 
     for (var reminder in reminders) {
-      if (reminder.repeatType != null &&
-          reminder.repeatType != 'once') {
+      if (reminder.repeatType != null && reminder.repeatType != 'once') {
         final nextTime = getNextOccurrence(reminder);
         if (nextTime != null) {
           final updatedReminder = reminder.copyWith(scheduledTime: nextTime);
@@ -38,13 +39,10 @@ class ViewRemindersScreen extends StatelessWidget {
     }
 
     // Show snackbar confirmation with count
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Refreshed $refreshedCount repeat reminder(s)."),
-        ),
-      );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Refreshed $refreshedCount repeat reminder(s).")),
+    );
   }
-
 
   Map<String, List<Reminder>> _groupReminders(List<DocumentSnapshot> docs) {
     Map<String, List<Reminder>> groupedReminders = {
@@ -75,27 +73,7 @@ class ViewRemindersScreen extends StatelessWidget {
       }
     }
 
-/*    final now = DateTime.now();
-
-    groupedReminders.forEach((key, list) {
-      list.sort((a, b) {
-        final aTime = a.scheduledTime ?? DateTime(2100);
-        final bTime = b.scheduledTime ?? DateTime(2100);
-        return aTime.compareTo(bTime);
-      });
-
-      // Move expired reminders to the end
-      list.sort((a, b) {
-        final aExpired = (a.scheduledTime?.isBefore(now) ?? false);
-        final bExpired = (b.scheduledTime?.isBefore(now) ?? false);
-
-        if (aExpired == bExpired) return 0;
-        return aExpired ? 1 : -1; // expired goes after non-expired
-      });
-    });*/
-
     return groupedReminders;
-
   }
 
   @override
@@ -103,22 +81,23 @@ class ViewRemindersScreen extends StatelessWidget {
     return GradientScaffold(
       appBar: AppBar(
         title: const Text("View Reminders"),
-      actions: [
-        PopupMenuButton<String>(
-          onSelected: (value) {
-            if (value == 'refresh') {
-              refreshRepeatReminders(context);
-            }
-          },
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'refresh',
-            child: Text('Refresh Repeat Reminders'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'refresh') {
+                refreshRepeatReminders(context);
+              }
+            },
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(
+                    value: 'refresh',
+                    child: Text('Refresh Repeat Reminders'),
+                  ),
+                  // Add other options here if needed
+                ],
           ),
-          // Add other options here if needed
         ],
-      ),
-      ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _db.collection("reminders").snapshots(),
@@ -131,26 +110,30 @@ class ViewRemindersScreen extends StatelessWidget {
 
           return ListView(
             padding: const EdgeInsets.all(12),
-            children: grouped.entries
-                .where((entry) => entry.value.isNotEmpty)
-                .map((entry) => ReminderGroupWithSortedActiveAndPast(
-              groupTitle: entry.key,
-              reminders: entry.value,
-              onEdit: (reminder) {
-                Navigator.pushNamed(
-                  context,
-                  '/add-edit',
-                  arguments: reminder,
-                );
-              },
-              onDelete: (reminder) => deleteReminder(context, reminder),
-            ))
-                .toList(),
-          );},
+            children:
+                grouped.entries
+                    .where((entry) => entry.value.isNotEmpty)
+                    .map(
+                      (entry) => ReminderGroupWithSortedActiveAndPast(
+                        groupTitle: entry.key,
+                        reminders: entry.value,
+                        onEdit: (reminder) {
+                          Navigator.pushNamed(
+                            context,
+                            '/add-edit',
+                            arguments: reminder,
+                          );
+                        },
+                        onDelete:
+                            (reminder) => deleteReminder(context, reminder),
+                      ),
+                    )
+                    .toList(),
+          );
+        },
       ),
 
       floatingActionButton: ReminderExportFAB(db: _db),
-
     );
   }
 }

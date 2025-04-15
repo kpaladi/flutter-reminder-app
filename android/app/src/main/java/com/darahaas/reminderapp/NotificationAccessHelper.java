@@ -1,4 +1,4 @@
-package com.example.reminder_app;
+package com.darahaas.reminderapp;
 
 import android.content.Context;
 import android.content.Intent;

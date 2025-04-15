@@ -1,4 +1,4 @@
-package com.example.reminder_app;
+package com.darahaas.reminderapp;
 
 import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity;

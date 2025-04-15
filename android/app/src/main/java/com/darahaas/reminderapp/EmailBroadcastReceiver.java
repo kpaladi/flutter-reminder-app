@@ -1,4 +1,6 @@
-package com.example.reminder_app;
+package com.darahaas.reminderapp;
+
+import com.darahaas.reminderapp.BuildConfig;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -105,8 +107,13 @@ public class EmailBroadcastReceiver extends BroadcastReceiver {
 
     private void sendEmail(String recipientEmail, String subject, String body) {
         new Thread(() -> {
+/*
             final String senderEmail = BuildConfig.SENDER_EMAIL;  // Replace with your email
             final String senderPassword = BuildConfig.SENDER_PASSWORD; // Use an App Password if using Gmail
+*/
+
+            final String senderEmail = com.darahaas.reminderapp.BuildConfig.SENDER_EMAIL;
+            final String senderPassword = com.darahaas.reminderapp.BuildConfig.SENDER_PASSWORD;
 
             Properties props = new Properties();
             props.put("mail.smtp.auth", "true");

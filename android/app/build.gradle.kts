@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.reminder_app"
+    namespace = "com.darahaas.reminderapp"
     compileSdk = 35  // Stable version
     buildFeatures {
         buildConfig = true
@@ -25,6 +25,9 @@ android {
         val senderPassword: String = System.getenv("SENDER_PASSWORD") ?: ""
         buildConfigField("String", "SENDER_EMAIL", "\"$senderEmail\"")
         buildConfigField("String", "SENDER_PASSWORD", "\"$senderPassword\"")
+    }
+    buildFeatures {
+        buildConfig = true
     }
 
 //    flavorDimensions.add("default") // Simplified
@@ -82,6 +85,7 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.gms:google-services:4.4.2")
 
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("androidx.core:core-ktx:1.12.0")

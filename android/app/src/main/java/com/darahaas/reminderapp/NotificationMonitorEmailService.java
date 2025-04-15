@@ -1,4 +1,4 @@
-package com.example.reminder_app;
+package com.darahaas.reminderapp;
 
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
@@ -18,8 +18,8 @@ public class NotificationMonitorEmailService extends NotificationListenerService
         if (description == null) description = "No Description";
 
 
-        Intent intent = new Intent("com.example.notifications.EMAIL_INTENT");
-        intent.setClassName(getPackageName(), "com.example.reminder_app.EmailBroadcastReceiver");
+        Intent intent = new Intent("com.darahaas.reminderapp.EMAIL_INTENT");
+        intent.setClassName(getPackageName(), "com.darahaas.reminderapp.EmailBroadcastReceiver");
         intent.putExtra("title", title);
         intent.putExtra("description", description);
         sendBroadcast(intent);

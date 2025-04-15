@@ -1,4 +1,4 @@
-package com.example.reminder_app;
+package com.darahaas.reminderapp;
 
 import android.app.Notification;
 import android.app.NotificationChannel;

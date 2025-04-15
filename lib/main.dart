@@ -51,10 +51,16 @@ void main() async {
 
   if (PlatformDispatcher.instance.implicitView != null) {
     await dotenv.load(fileName: ".env");
-    await Firebase.initializeApp();
+
+    try {
+      await Firebase.initializeApp();
+    } catch (e) {
+      debugPrint("🔥 Firebase init failed : $e");
+    }
+
+    // await Firebase.initializeApp();
     await _requestPermissions();
     await initializeNotifications();
-
     debugPrint("🚀 Flutter App Starting...");
     runApp(ReminderApp());
   } else {

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:reminder_app/screens/quickaddreminder.dart';
 import '../models/reminder_model.dart';
 import '../services/import_csv.dart';
 import '../services/notification_service.dart';
@@ -101,6 +102,26 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  void showQuickAddDialog(BuildContext context, void Function(Reminder reminder) onCreated) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          contentPadding: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: QuickAddReminderWidget(onReminderCreated: (reminder) {
+              Navigator.of(context).pop(); // Close the dialog
+              onCreated(reminder);         // Handle the reminder
+            }),
+          ),
+        );
+      },
+    );
+  }
+
+
   bool _isFutureDate(DateTime dateTime) => dateTime.isAfter(DateTime.now());
 
   Future<void> saveReminder() async {
@@ -192,6 +213,10 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                     message: "Importing reminders...",
                     task: () => importFromCsv(context),
                   );
+                } else if (value == 'quick_add') {
+                  showQuickAddDialog(context, (reminder) {
+                    Navigator.pushNamed(context, '/reminder-detail', arguments: reminder.reminder_id);
+                  });
                 }
               },
               itemBuilder: (_) => const [
@@ -199,8 +224,13 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                   value: 'import',
                   child: Text('Import from CSV'),
                 ),
+                PopupMenuItem(
+                  value: 'quick_add',
+                  child: Text('Quick Add Reminder'),
+                ),
               ],
             ),
+
         ],
       ),
       body: SingleChildScrollView(
