@@ -35,6 +35,8 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
   late String initialTitle;
   late String initialDescription;
   late DateTime? initialDateTime;
+  String submitString = "Add Reminder";
+  String updateString = "Update Reminder";
 
   @override
   void initState() {
@@ -70,14 +72,25 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
 
     if (pickedDate == null) return;
 
+    if(!mounted) return;
+
     final pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: now.hour, minute: now.minute + 1),
+        context: context,
+        initialTime: !isEditing
+            ? TimeOfDay(
+          hour: now.add(const Duration(minutes: 1)).hour,
+          minute: now.add(const Duration(minutes: 1)).minute,
+        )
+            : TimeOfDay(
+          hour: initial.hour,
+          minute: initial.minute,
+        ),
     );
 
     if (pickedTime == null) return;
 
     setState(() {
+
       selectedDateTime = DateTime(
         pickedDate.year,
         pickedDate.month,
@@ -159,16 +172,14 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       await docRef.set(reminder.toMap());
       await NotificationService().scheduleNotification(reminder);
 
-      if (mounted) {
         _showSnack("✅ Reminder saved!");
         _resetToEmpty();
-        FocusScope.of(context).requestFocus(_titleFocusNode);
-      }
-
+      if(!mounted) return;
+      FocusScope.of(context).requestFocus(_titleFocusNode);
       Navigator.pop(context);
     } catch (e) {
       debugPrint("❌ Failed to save reminder: $e");
-      if (mounted) _showSnack("❌ Failed to save reminder.");
+      _showSnack("❌ Failed to save reminder.");
     }
   }
 
@@ -282,7 +293,7 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                AppSubmitButton(onPressed: hasChanges ? saveReminder : null),
+                  AppSubmitButton(onPressed: hasChanges ? saveReminder : null, label: isEditing ? "Update Reminder" : "Add Reminder"),
                 AppResetButton(
                   onPressed: _resetToInitialValues,
                   isEnabled: hasChanges,

@@ -83,6 +83,7 @@ class ReminderDetailScreen extends StatelessWidget {
 
         final reminder = snapshot.data!;
         var nextOccurence = getNextOccurrence(reminder);
+        var currentOccurence = reminder.scheduledTime;
 
         return Scaffold(
           appBar: AppBar(
@@ -207,8 +208,38 @@ class ReminderDetailScreen extends StatelessWidget {
                                     children: [
                                       TextSpan(
                                         text: DateFormat(
-                                          'EEE, MMM d • hh:mm a',
+                                          'EEE, MMM d y • hh:mm a',
                                         ).format(nextOccurence),
+                                        style: TextStyle(
+                                          color: Colors.blue.shade900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  softWrap: true,
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (nextOccurence == null)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.schedule, color: Colors.blue),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: RichText(
+                                  text: TextSpan(
+                                    text: 'Was scheduled for: ',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: DateFormat(
+                                          'EEE, MMM d y • hh:mm a',
+                                        ).format(currentOccurence!),
                                         style: TextStyle(
                                           color: Colors.blue.shade900,
                                         ),

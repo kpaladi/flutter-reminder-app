@@ -1,12 +1,16 @@
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:reminder_app/models/reminder_model.dart';
 import 'package:reminder_app/screens/add_edit_reminder_screen.dart';
+import 'package:reminder_app/screens/loginregistration.dart';
+import 'package:reminder_app/screens/loginscreen.dart';
 import 'package:reminder_app/screens/settings_screen.dart';
+import 'package:reminder_app/screens/verifyemail.dart';
 import 'package:reminder_app/screens/view_reminder.dart';
 import 'package:reminder_app/screens/view_reminders_screen.dart';
 import 'package:reminder_app/services/initialize_notifications.dart';
@@ -109,8 +113,17 @@ class ReminderApp extends StatelessWidget {
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: appTheme,
-      home: HomeScreen(),
-
+      initialRoute: FirebaseAuth.instance.currentUser == null
+          ? '/login'
+          : FirebaseAuth.instance.currentUser!.emailVerified
+          ? '/home'
+          : '/verify-email',
+      routes: {
+        '/login': (_) => const LoginScreen(),
+        '/register': (_) => const RegisterScreen(),
+        '/home': (_) => const HomeScreen(), // your reminder list screen
+        '/verify-email': (_) => const VerifyEmailScreen(),
+      },
       // ✅ Add this route handler
       onGenerateRoute: (settings) {
         if (settings.name == '/add-edit') {
@@ -192,46 +205,74 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.lightBlueAccent, Colors.lightBlueAccent],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildButton(
-                icon: Icons.add_alert,
-                label: "Add Reminder",
-                color: Theme.of(context).primaryColor,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const AddEditReminderScreen()),
-                  );
-                },
+      body: Stack(
+        children: [
+          // Main gradient + content
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.lightBlueAccent, Colors.lightBlueAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              const SizedBox(height: 20),
-              _buildButton(
-                icon: Icons.list_alt,
-                label: "View Reminders",
-                color: Theme.of(context).primaryColor,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => ViewRemindersScreen()),
-                  );
-                },
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildButton(
+                    icon: Icons.add_alert,
+                    label: "Add Reminder",
+                    color: Theme.of(context).primaryColor,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const AddEditReminderScreen()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  _buildButton(
+                    icon: Icons.list_alt,
+                    label: "View Reminders",
+                    color: Theme.of(context).primaryColor,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ViewRemindersScreen()),
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+
+          // 🔓 Positioned Logout Button
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton.extended(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushReplacementNamed(context, '/login');
+              },
+              icon: Icon(Icons.logout, color: Theme.of(context).appBarTheme.foregroundColor),
+              label: Text(
+                "Logout",
+                style: GoogleFonts.montserrat(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.0,
+                  color: Theme.of(context).appBarTheme.titleTextStyle?.color,
+                ),
+              ),
+              backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+            ),
+          ),
+        ],
       ),
     );
   }
