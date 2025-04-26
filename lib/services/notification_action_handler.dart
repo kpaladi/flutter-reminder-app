@@ -1,11 +1,8 @@
-// Handles snooze and done actions from notifications
-
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:reminder_app/services/reminder_service.dart';
+import 'package:reminder_app/services/reminder_repository.dart';
 import 'package:timezone/timezone.dart' as tz;
 
-import '../models/reminder_model.dart';
 import '../utils/reminder_utils.dart' as ReminderUtils;
 import 'notification_helper.dart';
 import 'notification_service.dart';
@@ -18,9 +15,15 @@ Future<void> handleNotificationAction(String actionId, String payload) async {
   final title = parts[1];
   final description = parts[2];
 
-  final reminderDoc = await FirebaseFirestore.instance.collection('reminders').doc(reminderId).get();
-  if (!reminderDoc.exists) return;
-  final reminder = Reminder.fromFirestore(reminderDoc);
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    await NotificationService().redirectToLogin(); // 🔁 Force login
+    return;
+  }
+
+  final repository = ReminderRepository(userId: user.uid);
+  final reminder = await repository.getReminderById(reminderId);
+  if (reminder == null) return;
 
   if (actionId == 'done') {
     // Cancel current notification
@@ -81,13 +84,19 @@ Future<void> onDidReceiveNotificationResponse(NotificationResponse response) asy
     await handleDoneAction(reminderId);
   } else if (response.actionId == 'snooze') {
     await handleSnoozeAction(reminderId);
-  } /*else if (!isSnooze) {
-    await maybeSendEmail(reminderId);
-  }*/
+  }
 }
 
 Future<void> handleDoneAction(String reminderId) async {
-  final reminder = await fetchReminderById(reminderId);
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    await NotificationService().redirectToLogin(); // 🔁 Redirect to login
+    return;
+  }
+
+  final repository = ReminderRepository(userId: user.uid);
+  final reminder = await repository.getReminderById(reminderId);
+  if (reminder == null) return;
 
   // Optionally cancel current notification
   await flutterLocalNotificationsPlugin.cancel(reminder!.notification_id);
@@ -100,7 +109,16 @@ Future<void> handleDoneAction(String reminderId) async {
 }
 
 Future<void> handleSnoozeAction(String reminderId) async {
-  final reminder = await fetchReminderById(reminderId);
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    await NotificationService().redirectToLogin(); // 🔁 Redirect to login
+    return;
+  }
+
+  final repository = ReminderRepository(userId: user.uid);
+  final reminder = await repository.getReminderById(reminderId);
+  if (reminder == null) return;
+
   final snoozedDate = DateTime.now().add(const Duration(minutes: 1));
   NotificationService().scheduleNotification(
     reminder!.copyWith(scheduledTime: snoozedDate),

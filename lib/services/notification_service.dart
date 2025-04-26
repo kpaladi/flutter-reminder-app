@@ -126,4 +126,29 @@ class NotificationService {
     await flutterLocalNotificationsPlugin.cancel(notification_id);
     debugPrint("❌ Cancelled notification for $notification_id");
   }
+
+  Future<void> redirectToLogin() async {
+    // This launches your app and tells it to open the login screen
+    const payload = 'redirect:login';
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      999999, // use an arbitrary ID
+      'Authentication required',
+      'Please login to access reminders',
+      tz.TZDateTime.now(tz.local).add(const Duration(seconds: 1)),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'login_redirect_channel',
+          'Login Redirect',
+          channelDescription: 'Redirects to login on notification click',
+          importance: Importance.max,
+          priority: Priority.max,
+          fullScreenIntent: true,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: payload,
+    );
+  }
+
+
 }

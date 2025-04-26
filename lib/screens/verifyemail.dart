@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   const VerifyEmailScreen({super.key});
@@ -18,8 +19,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   void initState() {
     super.initState();
     sendVerificationEmail();
-
-    // Check every 3 seconds if email is verified
     timer = Timer.periodic(const Duration(seconds: 3), (_) => checkEmailVerified());
   }
 
@@ -33,8 +32,30 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     try {
       setState(() => isSending = true);
 
-      final user = FirebaseAuth.instance.currentUser!;
+      User? user = FirebaseAuth.instance.currentUser;
+
+      // Retry logic if user not ready
+      int retries = 0;
+      while (user == null && retries < 5) {
+        await Future.delayed(const Duration(seconds: 1));
+        user = FirebaseAuth.instance.currentUser;
+        retries++;
+      }
+
+      if (user == null) {
+        setState(() => isSending = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User not available. Please try again later.')),
+        );
+        return;
+      }
+
       await user.sendEmailVerification();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Verification email sent!')),
+      );
 
       setState(() {
         canResendEmail = false;
@@ -42,6 +63,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       });
 
       await Future.delayed(const Duration(seconds: 5));
+
+      if (!mounted) return;
       setState(() => canResendEmail = true);
     } catch (e) {
       setState(() => isSending = false);
@@ -52,19 +75,38 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   }
 
   Future<void> checkEmailVerified() async {
-    await FirebaseAuth.instance.currentUser!.reload();
-    final user = FirebaseAuth.instance.currentUser!;
-    if (user.emailVerified) {
+    await FirebaseAuth.instance.currentUser?.reload();
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null && user.emailVerified) {
       timer?.cancel();
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/login');  // Automatically navigate to login
     }
+  }
+
+  Future<void> goToLogin() async {
+    timer?.cancel();
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify Email')),
+      backgroundColor: Colors.grey[100], // Same as View Reminders screen
+      appBar: AppBar(
+        title: Text(
+          'Verify Email',
+          style: GoogleFonts.montserrat(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.0,
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -79,16 +121,19 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: canResendEmail ? sendVerificationEmail : null,
-              child: isSending ? const CircularProgressIndicator() : const Text('Resend Email'),
+              onPressed: (canResendEmail && !isSending) ? sendVerificationEmail : null,
+              child: isSending
+                  ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+                  : const Text('Resend Email'),
             ),
-            TextButton(
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                if (!mounted) return;
-                Navigator.pushReplacementNamed(context, '/login');
-              },
-              child: const Text('Cancel'),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: goToLogin,
+              child: const Text('Go to Login'),
             ),
           ],
         ),

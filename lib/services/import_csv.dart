@@ -1,8 +1,9 @@
 import 'package:csv/csv.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:reminder_app/services/notification_service.dart';
+import 'package:reminder_app/services/reminder_repository.dart';
 import '../models/reminder_model.dart';
 
 bool hasHeaderRow(List<String> row) {
@@ -45,6 +46,18 @@ Future<void> importFromCsv(BuildContext context) async {
     int addedCount = 0;
     int duplicateCount = 0;
 
+    final user = FirebaseAuth.instance.currentUser;
+    ReminderRepository repository;
+
+    if (user == null) {
+      debugPrint("user need to logged in for import");
+      return;
+    } else {
+      final userId = user.uid; // Extract the uid (userId) from the User object
+      repository = ReminderRepository(userId: userId);
+    }
+
+
     for (int i = startingDataRow; i < rows.length; i++) {
       final row = rows[i];
 
@@ -63,29 +76,19 @@ Future<void> importFromCsv(BuildContext context) async {
 
       // If reminder_id exists: treat as update
       if (reminderId != null && reminderId.isNotEmpty) {
-        final existingDoc = await FirebaseFirestore.instance
-            .collection('reminders')
-            .doc(reminderId)
-            .get();
+        final existingReminder = await repository.getReminderById(reminderId);
 
-        if (existingDoc.exists) {
-          final existingData = existingDoc.data();
-          final existingNotificationId = existingData?['notification_id'];
-
+        if (existingReminder != null) {
           final reminder = Reminder(
             reminder_id: reminderId,
             title: title,
             description: description,
             scheduledTime: scheduledTime,
             repeatType: repeatType,
-            notification_id: existingNotificationId ??
-                Reminder.generateStableId(reminderId),
+            notification_id: existingReminder.notification_id,
           );
 
-          await FirebaseFirestore.instance
-              .collection('reminders')
-              .doc(reminderId)
-              .set(reminder.toMap());
+          await repository.updateReminder(reminder);
 
           await NotificationService().scheduleNotification(reminder);
           addedCount++;
@@ -95,36 +98,29 @@ Future<void> importFromCsv(BuildContext context) async {
 
       // ✅ Check for duplicates (match by content — not by timestamp only)
       try {
-        final query = await FirebaseFirestore.instance
-            .collection('reminders')
-            .where('title', isEqualTo: title)
-            .where('description', isEqualTo: description)
-            .get();
-
-        print("Query successful. Found: ${query.docs.length}");
-        if (query.docs.isNotEmpty) {
-          debugPrint("🔍 Duplicate check: found ${query.docs.length} existing reminders");
+        final query = await repository.getReminders();
+        if (query.any((existingReminder) =>
+        existingReminder.title == title &&
+            existingReminder.description == description)) {
+          debugPrint("🔍 Duplicate check: found existing reminders");
           duplicateCount++;
           continue;
         }
-      } catch (e, stackTrace) {
-        print("🔥 Firestore query failed: $e");
+      } catch (e) {
+        debugPrint("🔥 Repository query failed: $e");
       }
 
-
-
       // Create new reminder
-      final docRef = FirebaseFirestore.instance.collection('reminders').doc();
       final newReminder = Reminder(
-        reminder_id: docRef.id,
+        reminder_id: repository.getNewReminderId(),
         title: title,
         description: description,
         scheduledTime: scheduledTime,
         repeatType: repeatType,
-        notification_id: Reminder.generateStableId(docRef.id),
+        notification_id: Reminder.generateStableId(repository.getNewReminderId()),
       );
 
-      await docRef.set(newReminder.toMap());
+      await repository.addReminder(newReminder);
       await NotificationService().scheduleNotification(newReminder);
       addedCount++;
     }

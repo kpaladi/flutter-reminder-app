@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import '../models/reminder_model.dart';
-import '../services/delete_reminder.dart';
 import '../services/notification_service.dart';
+import '../services/reminder_repository.dart';
 import '../utils/reminder_utils.dart';
 import '../widgets/gradient_scaffold.dart';
 import '../widgets/reminder_export_fab.dart';
@@ -10,20 +11,11 @@ import '../widgets/remindergroup_sorted_active_past.dart';
 import '../widgets/shared_widgets.dart';
 
 class ViewRemindersScreen extends StatelessWidget {
-  final _db = FirebaseFirestore.instance;
+  const ViewRemindersScreen({super.key});
 
-  ViewRemindersScreen({super.key});
-
-  Reminder _mapDocToReminder(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return Reminder.fromMap(data, doc.id);
-  }
-
-  Future<void> refreshRepeatReminders(context) async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('reminders').get();
-    final reminders =
-        snapshot.docs.map((doc) => Reminder.fromMap(doc.data())).toList();
+  Future<void> refreshRepeatReminders(BuildContext context) async {
+    final repository = Provider.of<ReminderRepository>(context, listen: false);
+    final reminders = await repository.getAllReminders();
 
     int refreshedCount = 0;
 
@@ -38,13 +30,12 @@ class ViewRemindersScreen extends StatelessWidget {
       }
     }
 
-    // Show snackbar confirmation with count
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Refreshed $refreshedCount repeat reminder(s).")),
     );
   }
 
-  Map<String, List<Reminder>> _groupReminders(List<DocumentSnapshot> docs) {
+  Map<String, List<Reminder>> _groupReminders(List<Reminder> reminders) {
     Map<String, List<Reminder>> groupedReminders = {
       'One-Time': [],
       'Daily': [],
@@ -54,8 +45,7 @@ class ViewRemindersScreen extends StatelessWidget {
       'Others': [],
     };
 
-    for (var doc in docs) {
-      final reminder = _mapDocToReminder(doc);
+    for (var reminder in reminders) {
       final type = reminder.repeatType?.toLowerCase();
 
       if (type == null || type.isEmpty || type == 'once') {
@@ -78,6 +68,9 @@ class ViewRemindersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Ensuring the ReminderRepository is being listened to correctly
+    final repository = Provider.of<ReminderRepository>(context);
+
     return GradientScaffold(
       appBar: AppBar(
         title: const Text("View Reminders"),
@@ -94,19 +87,18 @@ class ViewRemindersScreen extends StatelessWidget {
                     value: 'refresh',
                     child: Text('Refresh Repeat Reminders'),
                   ),
-                  // Add other options here if needed
                 ],
           ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _db.collection("reminders").snapshots(),
+      body: StreamBuilder<List<Reminder>>(
+        stream: repository.watchAllReminders(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: LoadingIndicator());
           }
 
-          final grouped = _groupReminders(snapshot.data!.docs);
+          final grouped = _groupReminders(snapshot.data!);
 
           return ListView(
             padding: const EdgeInsets.all(12),
@@ -124,16 +116,17 @@ class ViewRemindersScreen extends StatelessWidget {
                             arguments: reminder,
                           );
                         },
-                        onDelete:
-                            (reminder) => deleteReminder(context, reminder),
+                        onDelete: (reminder) async {
+                          await NotificationService().cancelNotification(reminder.notification_id);
+                          await repository.deleteReminder(reminder.reminder_id);
+                        },
                       ),
                     )
                     .toList(),
           );
         },
       ),
-
-      floatingActionButton: ReminderExportFAB(db: _db),
+      floatingActionButton: ReminderExportFAB(repository: repository),
     );
   }
 }

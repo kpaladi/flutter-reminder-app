@@ -1,10 +1,9 @@
 // helpers/reminder_firestore_helper.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/reminder_model.dart';
 
 
 
-Reminder mapDocToReminder(DocumentSnapshot doc) {
+/*Reminder mapDocToReminder(DocumentSnapshot doc) {
   final data = doc.data() as Map<String, dynamic>;
 
   return Reminder(
@@ -15,7 +14,7 @@ Reminder mapDocToReminder(DocumentSnapshot doc) {
     repeatType: data['repeatType'],
     notification_id: data['notification_id'] ?? Reminder.generateStableId(doc.id),
   );
-}
+}*/
 
 Map<String, List<Reminder>> groupAndSortReminders(List<Reminder> reminders) {
   final Map<String, List<Reminder>> grouped = {

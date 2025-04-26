@@ -1,24 +1,26 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Import Provider
 import 'package:reminder_app/screens/quickaddreminder.dart';
 import '../models/reminder_model.dart';
 import '../services/import_csv.dart';
 import '../services/notification_service.dart';
+import '../services/reminder_repository.dart';
 import '../utils/dialogs.dart';
 import '../widgets/app_reset_button.dart';
 import '../widgets/gradient_scaffold.dart';
-import '../widgets/shared_widgets.dart'; // Import shared widgets
+import '../widgets/shared_widgets.dart';
 
 class AddEditReminderScreen extends StatefulWidget {
   final Reminder? reminder;
 
-  const AddEditReminderScreen({super.key, this.reminder});
+  const AddEditReminderScreen({
+    super.key,
+    this.reminder,
+  });
 
   @override
   State<AddEditReminderScreen> createState() => _AddEditReminderScreenState();
 }
-
-// No changes in imports or class declaration
 
 class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
   final titleController = TextEditingController();
@@ -57,11 +59,12 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     descriptionController.addListener(_onFormChanged);
   }
 
+  // Picking Date and Time
   void pickDateTime() async {
     final now = DateTime.now();
 
     final DateTime initial = selectedDateTime ?? now;
-    final DateTime first = DateTime(2000); // or even earlier if needed
+    final DateTime first = DateTime(2000);
 
     final pickedDate = await showDatePicker(
       context: context,
@@ -72,25 +75,22 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
 
     if (pickedDate == null) return;
 
-    if(!mounted) return;
+    if (!mounted) return;
 
     final pickedTime = await showTimePicker(
-        context: context,
-        initialTime: !isEditing
-            ? TimeOfDay(
-          hour: now.add(const Duration(minutes: 1)).hour,
-          minute: now.add(const Duration(minutes: 1)).minute,
-        )
-            : TimeOfDay(
-          hour: initial.hour,
-          minute: initial.minute,
-        ),
+      context: context,
+      initialTime:
+          !isEditing
+              ? TimeOfDay(
+                hour: now.add(const Duration(minutes: 1)).hour,
+                minute: now.add(const Duration(minutes: 1)).minute,
+              )
+              : TimeOfDay(hour: initial.hour, minute: initial.minute),
     );
 
     if (pickedTime == null) return;
 
     setState(() {
-
       selectedDateTime = DateTime(
         pickedDate.year,
         pickedDate.month,
@@ -102,8 +102,10 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     });
   }
 
+  // Handling form changes (validation)
   void _onFormChanged() {
-    final changed = titleController.text != initialTitle ||
+    final changed =
+        titleController.text != initialTitle ||
         descriptionController.text != initialDescription ||
         selectedDateTime != initialDateTime ||
         repeatType != initialRepeatType;
@@ -111,70 +113,90 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     setState(() => hasChanges = changed);
   }
 
+  // SnackBar function
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void showQuickAddDialog(BuildContext context, void Function(Reminder reminder) onCreated) {
+  // Handle Quick Add dialog
+  void showQuickAddDialog(
+    BuildContext context,
+    void Function(Reminder reminder) onCreated,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           contentPadding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           content: SizedBox(
             width: double.maxFinite,
-            child: QuickAddReminderWidget(onReminderCreated: (reminder) {
-              Navigator.of(context).pop(); // Close the dialog
-              onCreated(reminder);         // Handle the reminder
-            }),
+            child: QuickAddReminderWidget(
+              onReminderCreated: (reminder) {
+                Navigator.of(context).pop();
+                onCreated(reminder);
+              },
+              repository: Provider.of<ReminderRepository>(
+                context,
+                listen: false,
+              ), // Access via Provider
+            ),
           ),
         );
       },
     );
   }
 
-
-  bool _isFutureDate(DateTime dateTime) => dateTime.isAfter(DateTime.now());
-
+  // Save the reminder
   Future<void> saveReminder() async {
     if (selectedDateTime == null) {
       _showSnack("Schedule Time cannot be null");
       return;
     }
 
-    if (!isEditing && !_isFutureDate(selectedDateTime!)) {
+    if (!isEditing && !selectedDateTime!.isAfter(DateTime.now())) {
       _showSnack("Please select a future date and time.");
       return;
     }
 
-    if (isEditing && selectedDateTime != initialDateTime && !_isFutureDate(selectedDateTime!)) {
+    if (isEditing &&
+        selectedDateTime != initialDateTime &&
+        !selectedDateTime!.isAfter(DateTime.now())) {
       _showSnack("Please select a future date and time.");
       return;
     }
 
-    final docRef = isEditing
-        ? FirebaseFirestore.instance
-        .collection('reminders')
-        .doc(widget.reminder!.reminder_id)
-        : FirebaseFirestore.instance.collection('reminders').doc();
+    final reminderId =
+        isEditing
+            ? widget.reminder!.reminder_id
+            : Provider.of<ReminderRepository>(
+              context,
+              listen: false,
+            ).getNewReminderId();
 
     final reminder = Reminder(
-      reminder_id: docRef.id,
+      reminder_id: reminderId,
       title: titleController.text.trim(),
       description: descriptionController.text.trim(),
       scheduledTime: selectedDateTime!,
       repeatType: repeatType,
-      notification_id: Reminder.generateStableId(docRef.id),
+      notification_id: Reminder.generateStableId(reminderId),
     );
 
     try {
-      await docRef.set(reminder.toMap());
+      await Provider.of<ReminderRepository>(
+        context,
+        listen: false,
+      ).saveReminder(reminder); // Save via Provider
       await NotificationService().scheduleNotification(reminder);
 
-        _showSnack("✅ Reminder saved!");
-        _resetToEmpty();
-      if(!mounted) return;
+      _showSnack("✅ Reminder saved!");
+      _resetToEmpty();
+      if (!mounted) return;
       FocusScope.of(context).requestFocus(_titleFocusNode);
       Navigator.pop(context);
     } catch (e) {
@@ -183,6 +205,7 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     }
   }
 
+  // Reset the form
   void _resetToEmpty() {
     setState(() {
       hasChanges = false;
@@ -196,7 +219,6 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
   void _resetToInitialValues() {
     setState(() {
       hasChanges = false;
-
       if (isEditing) {
         titleController.text = initialTitle;
         descriptionController.text = initialDescription;
@@ -210,6 +232,7 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // final repository = Provider.of<ReminderRepository>(context, listen: false);
     return GradientScaffold(
       appBar: AppBar(
         title: Text(isEditing ? "Edit Reminder" : "Add Reminder"),
@@ -218,30 +241,37 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
           if (!isEditing)
             PopupMenuButton<String>(
               onSelected: (value) async {
-                if (value == 'import') {
-                  await runWithLoadingDialog(
-                    context: context,
-                    message: "Importing reminders...",
-                    task: () => importFromCsv(context),
-                  );
-                } else if (value == 'quick_add') {
-                  showQuickAddDialog(context, (reminder) {
-                    Navigator.pushNamed(context, '/reminder-detail', arguments: reminder.reminder_id);
-                  });
+                switch (value) {
+                  case 'import':
+                    await runWithLoadingDialog(
+                      context: context,
+                      message: "Importing reminders...",
+                      task: () => importFromCsv(context),
+                    );
+                    break;
+                  case 'quick_add':
+                    showQuickAddDialog(context, (reminder) {
+                      Navigator.pushNamed(
+                        context,
+                        '/reminder-detail',
+                        arguments: reminder.reminder_id,
+                      );
+                    });
+                    break;
                 }
               },
-              itemBuilder: (_) => const [
-                PopupMenuItem(
-                  value: 'import',
-                  child: Text('Import from CSV'),
-                ),
-                PopupMenuItem(
-                  value: 'quick_add',
-                  child: Text('Quick Add Reminder'),
-                ),
-              ],
+              itemBuilder:
+                  (_) => const [
+                    PopupMenuItem(
+                      value: 'import',
+                      child: Text('Import from CSV'),
+                    ),
+                    PopupMenuItem(
+                      value: 'quick_add',
+                      child: Text('Quick Add Reminder'),
+                    ),
+                  ],
             ),
-
         ],
       ),
       body: SingleChildScrollView(
@@ -253,8 +283,11 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
               label: "Title",
               focusNode: _titleFocusNode,
               isFormField: true,
-              validator: (value) =>
-              (value == null || value.isEmpty) ? 'Please enter a title' : null,
+              validator:
+                  (value) =>
+                      (value == null || value.isEmpty)
+                          ? 'Please enter a title'
+                          : null,
             ),
             const SizedBox(height: 16),
             AppTextField(
@@ -293,7 +326,10 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                  AppSubmitButton(onPressed: hasChanges ? saveReminder : null, label: isEditing ? "Update Reminder" : "Add Reminder"),
+                AppSubmitButton(
+                  onPressed: hasChanges ? saveReminder : null,
+                  label: isEditing ? "Update Reminder" : "Add Reminder",
+                ),
                 AppResetButton(
                   onPressed: _resetToInitialValues,
                   isEnabled: hasChanges,
@@ -317,4 +353,3 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     super.dispose();
   }
 }
-

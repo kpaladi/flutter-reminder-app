@@ -1,13 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/reminder_model.dart';
 import '../services/notification_service.dart';
+import '../services/reminder_repository.dart';
 import '../utils/date_parser.dart';
 
 class QuickAddReminderWidget extends StatefulWidget {
+  final ReminderRepository repository;
   final void Function(Reminder reminder) onReminderCreated;
 
-  const QuickAddReminderWidget({super.key, required this.onReminderCreated});
+  const QuickAddReminderWidget({super.key, required this.repository, required this.onReminderCreated});
 
   @override
   State<QuickAddReminderWidget> createState() => _QuickAddReminderWidgetState();
@@ -74,18 +75,19 @@ class _QuickAddReminderWidgetState extends State<QuickAddReminderWidget> {
       return;
     }
 
-    final docRef = FirebaseFirestore.instance.collection('reminders').doc();
+    final reminderId = widget.repository.getNewReminderId();
+    // final docRef = FirebaseFirestore.instance.collection('reminders').doc();
     final newReminder = Reminder(
-      reminder_id: docRef.id,
+      reminder_id: reminderId,
       title: title,
       description: description,
       scheduledTime: parsedDate,
       // ✅ use parsed date
       repeatType: repeat,
-      notification_id: Reminder.generateStableId(docRef.id),
+      notification_id: Reminder.generateStableId(reminderId),
     );
 
-    await docRef.set(newReminder.toMap());
+    await widget.repository.addReminder(newReminder);
     await NotificationService().scheduleNotification(newReminder);
 
     widget.onReminderCreated(newReminder);

@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../theme/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,8 +25,9 @@ class _LoginScreenState extends State<LoginScreen> {
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home');
+      await FirebaseAuth.instance.currentUser?.reload();
+      // if (!mounted) return;
+      // Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       setState(() {
         error = 'Login failed: ${e.toString()}';
@@ -32,10 +36,30 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.primary,
+      appBar: AppBar(
+        backgroundColor: AppColors.appBar,
+        title: Text(
+          'Login',
+          style: GoogleFonts.montserrat(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.0,
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         child: Center(
           child: SingleChildScrollView(
             child: Form(
@@ -45,7 +69,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   Text(
                     "Welcome Back",
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.0,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   TextFormField(
@@ -79,23 +107,58 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(error!, style: const TextStyle(color: Colors.red)),
                   ],
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: login,
-                    child: const Text('Login'),
+                  _buildButton(
+                    label: ("Login"),
+                    onPressed: () async {
+                      try {
+                        await FirebaseAuth.instance.signInWithEmailAndPassword(
+                          email: emailController.text.trim(),
+                          password: passwordController.text.trim(),
+                        );
+
+                        // Very important: reload after login
+                        await FirebaseAuth.instance.currentUser?.reload();
+
+                        if (!mounted) return;
+                        Navigator.pushReplacementNamed(context, '/'); // back to AuthGate
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Login failed: $e')),
+                        );
+                      }
+                    },
                   ),
                   const SizedBox(height: 16),
-                  TextButton(
-                    child: const Text('Don\'t have an account? Register'),
+                  _buildButton(
+                    label: ("Go to Register Screen"),
                     onPressed: () {
                       Navigator.pushReplacementNamed(context, '/register');
                     },
-                  ),
+                  )
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildButton({
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton.icon(
+      label: Text(
+        label,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        elevation: 8,
+      ),
+      onPressed: onPressed,
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
@@ -8,30 +7,27 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../constants/constants.dart';
+import '../services/reminder_repository.dart';
 
 
 class ReminderExportFAB extends StatelessWidget {
-  final FirebaseFirestore db;
+  final ReminderRepository repository;
 
-  const ReminderExportFAB({super.key, required this.db});
+  const ReminderExportFAB({super.key, required this.repository});
 
   Future<void> _exportReminders(BuildContext context) async {
     try {
-      final snapshot = await db.collection("reminders").get();
-      final reminders = snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['reminder_id'] = doc.id; // Include document ID explicitly
-        return data;
-      }).toList();
+      // Fetch reminders using repository
+      final reminders = await repository.getAllReminders();
 
       final rows = <List<String>>[
-        ["Title", "Description", "Scheduled Time", "Repeat Type", "ID (do not change)",],
+        ["Title", "Description", "Scheduled Time", "Repeat Type", "ID (do not change)"],
         ...reminders.map((r) => [
-          r["title"] ?? "",
-          r["description"] ?? "",
-          r["scheduledTime"].toDate().toString() ?? "",
-          r["repeatType"] ?? "once",
-          r["reminder_id"] ?? "",
+          r.title ?? "", // If title is null, use an empty string
+          r.description ?? "", // If description is null, use an empty string
+          r.scheduledTime != null ? r.scheduledTime.toString() : "",
+          r.repeatType ?? "once", // If repeatType is null, use "once"
+          r.reminder_id ?? "", // If reminder_id is null, use an empty string
         ]),
       ];
 
