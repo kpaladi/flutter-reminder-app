@@ -168,13 +168,10 @@ class ReminderApp extends StatelessWidget {
             throw Exception('Invalid arguments for /add-edit');
 
           case '/reminder-detail':
-            final args = settings.arguments as Map<String, dynamic>;
-            final reminderId = args['reminderId'] as String;
-            final repository = args['repository'] as ReminderRepository;
+            final reminderId = settings.arguments as String;
             return MaterialPageRoute(
               builder: (context) => ReminderDetailScreen(
-                reminderId: reminderId,
-                repository: repository,
+                reminderId: reminderId
               ),
             );
 

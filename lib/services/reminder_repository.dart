@@ -78,7 +78,7 @@ class ReminderRepository extends ChangeNotifier {
       debugPrint("📡 Stream update: ${reminders.length} reminder(s) received for user $userId");
 
       for (var r in reminders) {
-        debugPrint("🔔 Reminder: ${r.title} | ${r.scheduledTime}");
+        debugPrint("🔔 Reminder: ${r.title} | ${r.scheduledTime} | ${r.repeatType}");
       }
 
       return reminders;

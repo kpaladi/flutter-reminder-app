@@ -11,9 +11,8 @@ import 'add_edit_reminder_screen.dart';
 
 class ReminderDetailScreen extends StatelessWidget {
   final String reminderId;
-  final ReminderRepository repository; // Added repository as a parameter
 
-  const ReminderDetailScreen({super.key, required this.reminderId, required this.repository});
+  const ReminderDetailScreen({super.key, required this.reminderId});
 
   Future<Reminder> _loadReminder(ReminderRepository repository) async {
     final reminder = await repository.getReminderById(reminderId);
@@ -38,6 +37,7 @@ class ReminderDetailScreen extends StatelessWidget {
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
             onPressed: () async {
               Navigator.of(ctx).pop(); // Close dialog
+              await NotificationService().cancelNotification(reminder.notification_id);
               await _deleteReminder(context, reminder, repository);
             },
           ),
