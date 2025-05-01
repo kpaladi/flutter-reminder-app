@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -6,6 +7,7 @@ import '../models/reminder_model.dart';
 import '../services/notification_service.dart';
 import '../services/reminder_repository.dart';
 import '../services/whatsapp_service.dart' as whatsappservice;
+import '../theme/app_colors.dart';
 import '../utils/reminder_utils.dart';
 import 'add_edit_reminder_screen.dart';
 
@@ -80,19 +82,19 @@ class ReminderDetailScreen extends StatelessWidget {
         var currentOccurrence = reminder.scheduledTime;
 
         return Scaffold(
+          backgroundColor: AppColors.primary,
           appBar: AppBar(
-            title: const Text('Reminder Details'),
+            title: const Text('Reminder'),
             actions: [
               IconButton(
-                icon: const Icon(Icons.share),
+                icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.black),
                 tooltip: 'Share via WhatsApp',
-                onPressed: () => whatsappservice.sendReminder(
-                  context: context,
-                  reminder: reminder,
-                ),
+                onPressed: () {
+                  whatsappservice.sendReminder(context: context, reminder: reminder);
+                },
               ),
               IconButton(
-                icon: const Icon(Icons.edit),
+                icon: const Icon(Icons.edit, color: Color(0xFF000000)),
                 tooltip: 'Edit',
                 onPressed: () {
                   Navigator.push(
@@ -147,20 +149,27 @@ class ReminderDetailScreen extends StatelessWidget {
                   children: [
                     ElevatedButton.icon(
                       icon: const Icon(Icons.delete, color: Colors.white),
-                      label: const Text('Delete'),
+                      label: Text(
+                        'Delete',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        elevation: 8,
                       ),
                       onPressed: () => _confirmDelete(context, reminder, repository),
                     ),
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.close),
-                      label: const Text('Close'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      label: Text(
+                        'Close',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        elevation: 8,
                       ),
                       onPressed: () => Navigator.pop(context),
                     ),
