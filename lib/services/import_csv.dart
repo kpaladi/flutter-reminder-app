@@ -80,12 +80,12 @@ Future<void> importFromCsv(BuildContext context) async {
 
         if (existingReminder != null) {
           final reminder = Reminder(
-            reminder_id: reminderId,
+            reminderId: reminderId,
             title: title,
             description: description,
             scheduledTime: scheduledTime,
             repeatType: repeatType,
-            notification_id: existingReminder.notification_id,
+            notificationId: existingReminder.notificationId,
           );
 
           await repository.updateReminder(reminder);
@@ -112,12 +112,12 @@ Future<void> importFromCsv(BuildContext context) async {
 
       // Create new reminder
       final newReminder = Reminder(
-        reminder_id: repository.getNewReminderId(),
+        reminderId: repository.getNewReminderId(),
         title: title,
         description: description,
         scheduledTime: scheduledTime,
         repeatType: repeatType,
-        notification_id: Reminder.generateStableId(repository.getNewReminderId()),
+        notificationId: Reminder.generateStableId(repository.getNewReminderId()),
       );
 
       await repository.addReminder(newReminder);

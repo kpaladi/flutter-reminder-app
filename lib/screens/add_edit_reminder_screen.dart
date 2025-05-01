@@ -172,19 +172,19 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
 
     final reminderId =
         isEditing
-            ? widget.reminder!.reminder_id
+            ? widget.reminder!.reminderId
             : Provider.of<ReminderRepository>(
               context,
               listen: false,
             ).getNewReminderId();
 
     final reminder = Reminder(
-      reminder_id: reminderId,
+      reminderId: reminderId,
       title: titleController.text.trim(),
       description: descriptionController.text.trim(),
       scheduledTime: selectedDateTime!,
       repeatType: repeatType,
-      notification_id: Reminder.generateStableId(reminderId),
+      notificationId: Reminder.generateStableId(reminderId),
     );
 
     try {
@@ -254,7 +254,7 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                       Navigator.pushNamed(
                         context,
                         '/reminder-detail',
-                        arguments: reminder.reminder_id,
+                        arguments: reminder.reminderId,
                       );
                     });
                     break;

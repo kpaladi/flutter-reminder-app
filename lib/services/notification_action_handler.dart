@@ -3,7 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:reminder_app/services/reminder_repository.dart';
 import 'package:timezone/timezone.dart' as tz;
 
-import '../utils/reminder_utils.dart' as ReminderUtils;
+import '../utils/reminder_utils.dart' as reminderutils;
 import 'notification_helper.dart';
 import 'notification_service.dart';
 
@@ -27,11 +27,11 @@ Future<void> handleNotificationAction(String actionId, String payload) async {
 
   if (actionId == 'done') {
     // Cancel current notification
-    await flutterLocalNotificationsPlugin.cancel(reminder.notification_id);
+    await flutterLocalNotificationsPlugin.cancel(reminder.notificationId);
 
     // Schedule next occurrence if it's a repeat reminder
     if (reminder.repeatType != 'once') {
-      final nextTime = ReminderUtils.getNextOccurrence(reminder);
+      final nextTime = reminderutils.getNextOccurrence(reminder);
       if (nextTime != null) {
         reminder.scheduledTime = nextTime;
       }
@@ -39,11 +39,11 @@ Future<void> handleNotificationAction(String actionId, String payload) async {
     }
   } else if (actionId == 'snooze') {
     // Cancel current notification
-    await flutterLocalNotificationsPlugin.cancel(reminder.notification_id);
+    await flutterLocalNotificationsPlugin.cancel(reminder.notificationId);
 
     final snoozedTime = DateTime.now().add(const Duration(minutes: 10));
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      reminder.notification_id,
+      reminder.notificationId,
       'Snoozed: $title',
       description,
       tz.TZDateTime.from(snoozedTime, tz.local),
@@ -76,9 +76,8 @@ Future<void> handleNotificationAction(String actionId, String payload) async {
 Future<void> onDidReceiveNotificationResponse(NotificationResponse response) async {
 
   final parts = (response.payload ?? '').split('|');
-  if (parts.length < 1) return;
+  if (parts.isEmpty) return;
   final reminderId = parts[0];
-  final isSnooze = response.actionId == 'snooze'; // better than relying on payload
 
   if (response.actionId == 'done') {
     await handleDoneAction(reminderId);
@@ -99,10 +98,10 @@ Future<void> handleDoneAction(String reminderId) async {
   if (reminder == null) return;
 
   // Optionally cancel current notification
-  await flutterLocalNotificationsPlugin.cancel(reminder!.notification_id);
+  await flutterLocalNotificationsPlugin.cancel(reminder.notificationId);
 
   if (reminder.repeatType != 'once') {
-    final nextDate = ReminderUtils.getNextOccurrence(reminder);
+    final nextDate = reminderutils.getNextOccurrence(reminder);
     NotificationService().scheduleNotification(reminder.copyWith(scheduledTime: nextDate));
   }
 
@@ -121,7 +120,7 @@ Future<void> handleSnoozeAction(String reminderId) async {
 
   final snoozedDate = DateTime.now().add(const Duration(minutes: 1));
   NotificationService().scheduleNotification(
-    reminder!.copyWith(scheduledTime: snoozedDate),
+    reminder.copyWith(scheduledTime: snoozedDate),
   );
 }
 

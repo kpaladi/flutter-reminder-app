@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/app_colors.dart';
 
@@ -12,28 +13,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   String? error;
-
-  Future<void> login() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-      await FirebaseAuth.instance.currentUser?.reload();
-      // if (!mounted) return;
-      // Navigator.pushReplacementNamed(context, '/home');
-    } catch (e) {
-      setState(() {
-        error = 'Login failed: ${e.toString()}';
-      });
-    }
-  }
 
   @override
   void dispose() {
@@ -111,17 +95,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     label: ("Login"),
                     onPressed: () async {
                       try {
-                        await FirebaseAuth.instance.signInWithEmailAndPassword(
+                        final authResult = await FirebaseAuth.instance.signInWithEmailAndPassword(
                           email: emailController.text.trim(),
                           password: passwordController.text.trim(),
                         );
 
-                        // Very important: reload after login
                         await FirebaseAuth.instance.currentUser?.reload();
+                        final user = authResult.user;
+                        if (user != null) {
+                          await user.reload();
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setString('current_user_uid', user.uid);
+                        }
 
                         if (!mounted) return;
-                        Navigator.pushReplacementNamed(context, '/'); // back to AuthGate
+                        Navigator.pushReplacementNamed(context, '/');
                       } catch (e) {
+                        if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Login failed: $e')),
                         );
@@ -134,6 +124,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       Navigator.pushReplacementNamed(context, '/register');
                     },
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/reset-password');
+                    },
+                    child: Text("Forgot Password?"),
                   )
                 ],
               ),

@@ -7,23 +7,35 @@ const MethodChannel _platform = MethodChannel('notification_access_channel');
 class PermissionsHelper {
   /// Request Notification & Alarm permissions immediately
   static Future<void> requestEssentialPermissions() async {
-    final notifStatus = await Permission.notification.request();
-    final alarmStatus = await Permission.scheduleExactAlarm.request();
+    try {
+      debugPrint("🔄 Requesting Notification and Alarm permissions...");
 
-    debugPrint("🔔 Notification permission: $notifStatus");
-    debugPrint("⏰ Exact alarm permission: $alarmStatus");
+      // Request Notification Permission
+      final notifStatus = await Permission.notification.request();
+      debugPrint("🔔 Notification permission: $notifStatus");
+
+      // Request Exact Alarm Permission
+      final alarmStatus = await Permission.scheduleExactAlarm.request();
+      debugPrint("⏰ Exact alarm permission: $alarmStatus");
+
+    } catch (e) {
+      debugPrint("❌ Error requesting permissions: $e");
+    }
   }
 
   /// Request special Notification Listener access with dialog
   static Future<void> requestSpecialNotificationAccess(BuildContext context) async {
     try {
-      final bool isGranted =
-      await _platform.invokeMethod('isNotificationAccessEnabled');
+      debugPrint("🔄 Checking if Notification Listener access is granted...");
+
+      final bool isGranted = await _platform.invokeMethod('isNotificationAccessEnabled');
 
       if (isGranted) {
         debugPrint("✅ Notification Listener access already granted.");
         return;
       }
+
+      debugPrint("🔄 Notification Listener access not granted. Showing dialog...");
 
       // Prompt user via dialog
       showDialog(
@@ -54,6 +66,8 @@ class PermissionsHelper {
 
   /// Convenience method to do both, with delay for UX
   static Future<void> handleAllPermissions(BuildContext context) async {
+    debugPrint("🔄 Handling all permissions...");
+
     // 🔔 Request notification permission
     final notifStatus = await Permission.notification.request();
     debugPrint("🔔 Notification permission: $notifStatus");
@@ -70,8 +84,8 @@ class PermissionsHelper {
 
     // 🔓 Finally, request special notification listener access
     if (context.mounted) {
+      debugPrint("🔄 Requesting special notification access...");
       requestSpecialNotificationAccess(context);
     }
   }
-
 }

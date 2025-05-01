@@ -83,7 +83,7 @@ class NotificationService {
     }
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      reminder.notification_id,
+      reminder.notificationId,
       reminder.title,
       reminder.description,
       scheduledTime,
@@ -99,12 +99,12 @@ class NotificationService {
           autoCancel: true,
           actions: <AndroidNotificationAction>[
             AndroidNotificationAction(
-              'snooze_action_${reminder.notification_id}',
+              'snooze_action_${reminder.notificationId}',
               'Snooze',
               showsUserInterface: true,
             ),
             AndroidNotificationAction(
-              'view_action_${reminder.notification_id}',
+              'view_action_${reminder.notificationId}',
               'View',
               showsUserInterface: true,
             ),
@@ -114,17 +114,17 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: matchComponents,
       payload:
-          '${reminder.notification_id}|${reminder.reminder_id}|${reminder.title}|${reminder.description}',
+          '${reminder.notificationId}|${reminder.reminderId}|${reminder.title}|${reminder.description}',
     );
 
     debugPrint(
-      "📅 Scheduled reminder ID: ${reminder.reminder_id} at $scheduledTime (repeat: $repeatType)",
+      "📅 Scheduled reminder ID: ${reminder.reminderId} at $scheduledTime (repeat: $repeatType)",
     );
   }
 
-  Future<void> cancelNotification(int notification_id) async {
-    await flutterLocalNotificationsPlugin.cancel(notification_id);
-    debugPrint("❌ Cancelled notification for $notification_id");
+  Future<void> cancelNotification(int notificationId) async {
+    await flutterLocalNotificationsPlugin.cancel(notificationId);
+    debugPrint("❌ Cancelled notification for $notificationId");
   }
 
   Future<void> redirectToLogin() async {

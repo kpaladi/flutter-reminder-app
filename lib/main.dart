@@ -12,6 +12,7 @@ import 'package:reminder_app/screens/add_edit_reminder_screen.dart';
 import 'package:reminder_app/screens/home_screen.dart';
 import 'package:reminder_app/screens/loginregistration.dart';
 import 'package:reminder_app/screens/loginscreen.dart';
+import 'package:reminder_app/screens/reset_password_screen.dart';
 import 'package:reminder_app/screens/verifyemail.dart';
 import 'package:reminder_app/screens/view_reminder.dart';
 import 'package:reminder_app/services/autoauth.dart';
@@ -21,6 +22,8 @@ import 'package:reminder_app/services/reminder_repository.dart';
 import 'package:reminder_app/theme/app_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:reminder_app/widgets/error_app.dart';
+
+import 'helpers/check_user_eligibility.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -33,24 +36,47 @@ void main() async {
   platform.setMethodCallHandler((MethodCall call) async {
     if (call.method == "rescheduleNotifications") {
       debugPrint("🛠️ Dart: Received 'rescheduleNotifications' method call");
+
       try {
+        // Debugging Firebase initialization
+        debugPrint("🔄 Initializing Firebase...");
         await Firebase.initializeApp();
         debugPrint("✅ Firebase initialized");
 
-        // Initialize notifications and fetch reminders
+        // Debugging user eligibility check
+        debugPrint("🔄 Checking user eligibility for rescheduling...");
+        final user = await checkUserEligibilityForReschedule();
+        if (user == null) {
+          debugPrint("❌ User not eligible for rescheduling.");
+          return Future.error("User not eligible for rescheduling.");
+        }
+        debugPrint("✅ User eligible for rescheduling: ${user.uid}");
+
+        // Debugging notification initialization
+        debugPrint("🔄 Initializing notifications...");
         await initializeNotifications();
         debugPrint("✅ Notifications initialized");
 
-        await fetchAndScheduleReminders();
-        debugPrint("✅ Reminders fetched and scheduled");
+        // Debugging reminder fetch and scheduling
+        debugPrint("🔄 Fetching and scheduling reminders for user ${user.uid}...");
+        await fetchAndScheduleReminders(userId: user.uid);
+        debugPrint("✅ Reminders fetched and scheduled for user ${user.uid}");
 
+        // Final success message
+        debugPrint("✅ Reschedule process completed successfully.");
         return "done";
       } catch (e, stackTrace) {
+        // Debugging error and stack trace
         debugPrint("❌ Error during rescheduleNotifications: $e");
         debugPrint("📍 StackTrace: $stackTrace");
+
+        // Returning error message
         return Future.error("Failed to reschedule: $e");
       }
     }
+
+    // Handling method not matching
+    debugPrint("🔍 Method not handled: ${call.method}");
     return null;
   });
 
@@ -67,7 +93,11 @@ void main() async {
       return;
     }
 
-    await _requestPermissions();
+    // Only request permissions if we are in UI mode
+    if (PlatformDispatcher.instance.implicitView != null) {
+      await _requestPermissions();
+    }
+
     await initializeNotifications();
     debugPrint("🚀 Flutter App Starting...");
     runApp(AppBootstrapper());
@@ -90,9 +120,12 @@ Future<void> _requestPermissions() async {
   }
 }
 
-Future<int> fetchAndScheduleReminders() async {
+Future<int> fetchAndScheduleReminders({required String userId}) async {
   final FirebaseFirestore db = FirebaseFirestore.instance;
-  final snapshot = await db.collection("reminders").get();
+  final snapshot = await db
+      .collection("reminders")
+      .where('userId', isEqualTo: userId) // 🔥 Important to filter per user
+      .get();
 
   int scheduledCount = 0;
 
@@ -194,6 +227,11 @@ class ReminderApp extends StatelessWidget {
           case '/login':
             return MaterialPageRoute(
               builder: (context) => const LoginScreen(),
+            );
+
+          case '/reset-password':
+            return MaterialPageRoute(
+              builder: (context) => const ResetPasswordScreen(),
             );
 
           default:

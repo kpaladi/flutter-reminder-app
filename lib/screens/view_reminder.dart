@@ -37,7 +37,7 @@ class ReminderDetailScreen extends StatelessWidget {
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
             onPressed: () async {
               Navigator.of(ctx).pop(); // Close dialog
-              await NotificationService().cancelNotification(reminder.notification_id);
+              await NotificationService().cancelNotification(reminder.notificationId);
               await _deleteReminder(context, reminder, repository);
             },
           ),
@@ -51,8 +51,8 @@ class ReminderDetailScreen extends StatelessWidget {
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
-    await repository.deleteReminder(reminder.reminder_id);
-    await NotificationService().cancelNotification(reminder.notification_id);
+    await repository.deleteReminder(reminder.reminderId);
+    await NotificationService().cancelNotification(reminder.notificationId);
 
     messenger.showSnackBar(const SnackBar(content: Text('Reminder deleted')));
     navigator.pop(); // Close detail screen

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/reminder_model.dart';
-import '../services/whatsapp_service.dart' as WhatsAppService;
+import '../services/whatsapp_service.dart' as whatsappservice;
 import '../utils/reminder_utils.dart';
 
 class ReminderCard extends StatelessWidget {
@@ -69,7 +69,7 @@ class ReminderCard extends StatelessWidget {
                   icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green),
                   tooltip: 'Share via WhatsApp',
                   onPressed: () {
-                    WhatsAppService.sendReminder(context: context, reminder: reminder);
+                    whatsappservice.sendReminder(context: context, reminder: reminder);
                   },
                 ),
                 IconButton(

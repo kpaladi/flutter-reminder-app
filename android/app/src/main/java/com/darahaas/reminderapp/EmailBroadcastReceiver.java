@@ -21,7 +21,6 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
-
 import android.content.SharedPreferences;
 
 public class EmailBroadcastReceiver extends BroadcastReceiver {
@@ -43,7 +42,16 @@ public class EmailBroadcastReceiver extends BroadcastReceiver {
             Log.d("SharedPreferences", "Failed to access SharedPreferences.");
             return;
         }
-        String emailFlagKey = "flutter.email_enabled";
+
+        String currentUidKey = "flutter.current_user_uid";
+        String userId = prefs.getString(currentUidKey, null);
+
+        if (userId == null) {
+            Log.d(TAG, "❌ No logged-in user UID found in shared preferences.");
+            return;
+        }
+
+        String emailFlagKey = "flutter." + userId + "_email_enabled";
         Log.d("SharedPreferences", "Accessing key: " + emailFlagKey);
         boolean sendEmail = prefs.getBoolean(emailFlagKey, false);
         Log.d("SharedPreferences", "Retrieved email preference: " + sendEmail);
@@ -53,7 +61,7 @@ public class EmailBroadcastReceiver extends BroadcastReceiver {
             return;
         }
 
-        String emailKey = "flutter.recipient_email"; // Use the correct key here
+        String emailKey = "flutter." + userId + "_recipient_email"; // Use the correct key here
         Log.d("SharedPreferences", "Accessing key: " + emailKey);
         String emailId = prefs.getString(emailKey, "No email id provided");
         Log.d("SharedPreferences", "Retrieved email ID: " + emailId);

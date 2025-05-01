@@ -23,11 +23,11 @@ class ReminderExportFAB extends StatelessWidget {
       final rows = <List<String>>[
         ["Title", "Description", "Scheduled Time", "Repeat Type", "ID (do not change)"],
         ...reminders.map((r) => [
-          r.title ?? "", // If title is null, use an empty string
-          r.description ?? "", // If description is null, use an empty string
+          r.title, // If title is null, use an empty string
+          r.description, // If description is null, use an empty string
           r.scheduledTime != null ? r.scheduledTime.toString() : "",
           r.repeatType ?? "once", // If repeatType is null, use "once"
-          r.reminder_id ?? "", // If reminder_id is null, use an empty string
+          r.reminderId, // If reminder_id is null, use an empty string
         ]),
       ];
 

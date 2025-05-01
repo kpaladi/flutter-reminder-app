@@ -1,20 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Reminder {
-  final String reminder_id; // Firebase document ID
+  final String reminderId; // Firebase document ID
   final String title;
   final String description;
   late final DateTime? scheduledTime; // First occurrence of the reminder
   final String? repeatType; // e.g., 'once', 'daily', 'weekly', 'monthly', 'yearly'
-  final int notification_id; // Integer ID for local notifications
+  final int notificationId; // Integer ID for local notifications
 
   Reminder({
-    required this.reminder_id,
+    required this.reminderId,
     required this.title,
     required this.description,
     required this.scheduledTime,
     required this.repeatType,
-    required this.notification_id,
+    required this.notificationId,
   });
 
   /// Generate a stable integer ID from reminder_id (used for notifications)
@@ -23,14 +23,14 @@ class Reminder {
   /// Factory method to create Reminder from Firestore document/map
   factory Reminder.fromMap(Map<String, dynamic> data, [String? id]) {
     return Reminder(
-      reminder_id: id ?? '',
+      reminderId: id ?? '',
       title: data['title'] ?? '',
       description: data['description'] ?? '',
       scheduledTime: data['scheduledTime'] is Timestamp
           ? (data['scheduledTime'] as Timestamp).toDate()
           : null,
       repeatType: data['repeatType'],
-      notification_id: data['notification_id'] ??
+      notificationId: data['notification_id'] ??
           generateStableId(id ?? ''), // fallback if missing
     );
   }
@@ -44,7 +44,7 @@ class Reminder {
           ? Timestamp.fromDate(scheduledTime!)
           : null,
       'repeatType': repeatType,
-      'notification_id': notification_id,
+      'notification_id': notificationId,
     };
   }
 
@@ -55,29 +55,29 @@ class Reminder {
     String? description,
     DateTime? scheduledTime,
     String? repeatType,
-    int? notification_id,
+    int? notificationId,
   }) {
     return Reminder(
-      reminder_id: id ?? this.reminder_id,
+      reminderId: id ?? reminderId,
       title: title ?? this.title,
       description: description ?? this.description,
       scheduledTime: scheduledTime ?? this.scheduledTime,
       repeatType: repeatType ?? this.repeatType,
-      notification_id: notification_id ?? this.notification_id,
+      notificationId: notificationId ?? this.notificationId,
     );
   }
 
   factory Reminder.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Reminder(
-      reminder_id: doc.id,
+      reminderId: doc.id,
       title: data['title'],
       description: data['description'],
       scheduledTime: data['scheduledTime'] is Timestamp
           ? (data['scheduledTime'] as Timestamp).toDate()
           : null,
       repeatType: data['repeatType'],
-      notification_id: data['notification_id'],
+      notificationId: data['notification_id'],
     );
   }
 

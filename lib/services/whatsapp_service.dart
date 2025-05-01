@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,7 +8,7 @@ Future<void> sendReminder({
   required Reminder reminder,
   String? phoneNumber,
 }) async {
-  final message = '${reminder.description}';
+  final message = reminder.description;
 
   final Map<String, String> queryParams = {
     'text': message, // No manual encoding needed here

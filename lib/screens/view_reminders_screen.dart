@@ -117,8 +117,8 @@ class ViewRemindersScreen extends StatelessWidget {
                           );
                         },
                         onDelete: (reminder) async {
-                          await NotificationService().cancelNotification(reminder.notification_id);
-                          await repository.deleteReminder(reminder.reminder_id);
+                          await NotificationService().cancelNotification(reminder.notificationId);
+                          await repository.deleteReminder(reminder.reminderId);
                         },
                       ),
                     )

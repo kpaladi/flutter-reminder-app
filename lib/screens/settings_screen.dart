@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_settings_model.dart';
 import '../widgets/app_reset_button.dart';
 import '../widgets/gradient_scaffold.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -29,9 +30,16 @@ class SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) {
+      // fallback or error if no user is logged in
+      return;
+    }
+
     final settings = UserSettings.fromPreferences({
-      'recipient_email': prefs.getString('recipient_email'),
-      'email_enabled': prefs.getBool('email_enabled'),
+      'recipient_email': prefs.getString('${uid}_recipient_email'),
+      'email_enabled': prefs.getBool('${uid}_email_enabled'),
     });
 
     setState(() {
@@ -48,6 +56,11 @@ class SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _saveSettings() async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) return;
+
     final prefs = await SharedPreferences.getInstance();
 
     final updatedSettings = UserSettings(
@@ -56,8 +69,8 @@ class SettingsScreenState extends State<SettingsScreen> {
     );
 
     final map = updatedSettings.toPreferencesMap();
-    await prefs.setString('recipient_email', map['recipient_email'] as String);
-    await prefs.setBool('email_enabled', map['email_enabled'] as bool);
+    await prefs.setString('${uid}_recipient_email', map['recipient_email'] as String);
+    await prefs.setBool('${uid}_email_enabled', map['email_enabled'] as bool);
 
     if (!context.mounted) return;
 

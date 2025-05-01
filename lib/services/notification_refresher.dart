@@ -1,7 +1,6 @@
 import '../models/reminder_model.dart';
 import '../services/notification_service.dart';
 import '../utils/reminder_utils.dart';
-import '../utils/reminder_utils.dart' as ReminderUtils;
 
 class NotificationRefresher {
   final List<Reminder> reminders;

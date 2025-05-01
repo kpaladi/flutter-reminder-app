@@ -78,13 +78,13 @@ class _QuickAddReminderWidgetState extends State<QuickAddReminderWidget> {
     final reminderId = widget.repository.getNewReminderId();
     // final docRef = FirebaseFirestore.instance.collection('reminders').doc();
     final newReminder = Reminder(
-      reminder_id: reminderId,
+      reminderId: reminderId,
       title: title,
       description: description,
       scheduledTime: parsedDate,
       // ✅ use parsed date
       repeatType: repeat,
-      notification_id: Reminder.generateStableId(reminderId),
+      notificationId: Reminder.generateStableId(reminderId),
     );
 
     await widget.repository.addReminder(newReminder);

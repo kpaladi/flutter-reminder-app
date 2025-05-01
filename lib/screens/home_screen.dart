@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:reminder_app/screens/settings_screen.dart';
 import 'package:reminder_app/screens/view_reminders_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -46,7 +45,6 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final repository = Provider.of<ReminderRepository>(context);
 
     return GradientScaffold(
       appBar: AppBar(

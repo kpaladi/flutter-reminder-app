@@ -31,14 +31,14 @@ class ReminderRepository extends ChangeNotifier {
 
   // Add a new reminder for the current user
   Future<void> addReminder(Reminder reminder) async {
-    await _remindersRef.doc(reminder.reminder_id).set(reminder.toMap());
+    await _remindersRef.doc(reminder.reminderId).set(reminder.toMap());
     // Notify listeners that the data has changed
     notifyListeners();
   }
 
   // Update an existing reminder for the current user
   Future<void> updateReminder(Reminder reminder) async {
-    await _remindersRef.doc(reminder.reminder_id).update(reminder.toMap());
+    await _remindersRef.doc(reminder.reminderId).update(reminder.toMap());
     // Notify listeners that the data has changed
     notifyListeners();
   }
@@ -55,7 +55,7 @@ class ReminderRepository extends ChangeNotifier {
         .collection('users')
         .doc(userId)
         .collection('reminders')
-        .doc(reminder.reminder_id);
+        .doc(reminder.reminderId);
 
     await docRef.set(reminder.toMap());
     // Notify listeners that the data has changed
