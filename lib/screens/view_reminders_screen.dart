@@ -13,25 +13,25 @@ import '../widgets/shared_widgets.dart';
 class ViewRemindersScreen extends StatelessWidget {
   const ViewRemindersScreen({super.key});
 
-  Future<void> refreshRepeatReminders(BuildContext context) async {
+  Future<void> resyncReminders(BuildContext context) async {
     final repository = Provider.of<ReminderRepository>(context, listen: false);
     final reminders = await repository.getAllReminders();
 
-    int refreshedCount = 0;
+    int resyncedCount = 0;
 
     for (var reminder in reminders) {
-      if (reminder.repeatType != null && reminder.repeatType != 'once') {
+      if (reminder.repeatType != null) {
         final nextTime = getNextOccurrence(reminder);
         if (nextTime != null) {
           final updatedReminder = reminder.copyWith(scheduledTime: nextTime);
           await NotificationService().scheduleNotification(updatedReminder);
-          refreshedCount++;
+          resyncedCount++;
         }
       }
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Refreshed $refreshedCount repeat reminder(s).")),
+      SnackBar(content: Text("Re-synced $resyncedCount reminder(s).")),
     );
   }
 
@@ -77,15 +77,15 @@ class ViewRemindersScreen extends StatelessWidget {
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'refresh') {
-                refreshRepeatReminders(context);
+              if (value == 'resync') {
+                resyncReminders(context);
               }
             },
             itemBuilder:
                 (context) => [
                   const PopupMenuItem(
-                    value: 'refresh',
-                    child: Text('Refresh Repeat Reminders'),
+                    value: 'resync',
+                    child: Text('Resync Reminders'),
                   ),
                 ],
           ),

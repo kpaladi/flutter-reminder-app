@@ -103,6 +103,15 @@ DateTime? getNextOccurrence(Reminder reminder) {
       }
       return next;
 
+    case 'once':
+      var next = time;
+      if(next.isAfter(now)){
+        return next;
+      }
+      else {
+        return null;
+      }
+
     default:
       return null;
   }

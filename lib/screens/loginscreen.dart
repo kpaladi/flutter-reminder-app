@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/reminder_repository.dart';
 import '../theme/app_colors.dart';
+import '../utils/resync_reminders.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -25,6 +27,37 @@ class _LoginScreenState extends State<LoginScreen> {
     passwordController.dispose();
     super.dispose();
   }
+
+  Future<void> _handleLogin() async {
+    try {
+      final authResult = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      await FirebaseAuth.instance.currentUser?.reload();
+      final user = authResult.user;
+
+      if (user != null) {
+        await user.reload();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('current_user_uid', user.uid);
+
+        // Create ReminderRepository instance and resync reminders
+        final repository = ReminderRepository(userId: user.uid);
+        await ReminderHelper.resyncReminders(repository);
+      }
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: $e')),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -93,30 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
                   _buildButton(
                     label: ("Login"),
-                    onPressed: () async {
-                      try {
-                        final authResult = await FirebaseAuth.instance.signInWithEmailAndPassword(
-                          email: emailController.text.trim(),
-                          password: passwordController.text.trim(),
-                        );
-
-                        await FirebaseAuth.instance.currentUser?.reload();
-                        final user = authResult.user;
-                        if (user != null) {
-                          await user.reload();
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.setString('current_user_uid', user.uid);
-                        }
-
-                        if (!mounted) return;
-                        Navigator.pushReplacementNamed(context, '/');
-                      } catch (e) {
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Login failed: $e')),
-                        );
-                      }
-                    },
+                    onPressed: _handleLogin,
                   ),
                   const SizedBox(height: 16),
                   _buildButton(

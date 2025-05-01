@@ -5,6 +5,7 @@ import 'package:reminder_app/screens/settings_screen.dart';
 import 'package:reminder_app/screens/view_reminders_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/notification_service.dart';
 import '../services/reminder_repository.dart';
 import '../widgets/gradient_scaffold.dart';
 import 'add_edit_reminder_screen.dart';
@@ -41,6 +42,14 @@ class HomeScreenState extends State<HomeScreen> {
     setState(() {
       isEmailSet = (recipientEmail != null && recipientEmail.isNotEmpty);
     });
+  }
+
+  Future<void> cancelAllScheduledReminders() async {
+    final reminders = await widget.reminderRepository.getAllReminders();
+
+    for (final reminder in reminders) {
+      await NotificationService().cancelNotification(reminder.notificationId);
+    }
   }
 
   @override
@@ -145,6 +154,9 @@ class HomeScreenState extends State<HomeScreen> {
 
           if (confirmed == true) {
             try {
+              // clear all the notifications for the current user
+              await cancelAllScheduledReminders();
+
               await FirebaseAuth.instance.signOut();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Logged out successfully')),

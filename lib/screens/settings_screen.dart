@@ -131,7 +131,6 @@ class SettingsScreenState extends State<SettingsScreen> {
               decoration: InputDecoration(
                 labelText: "Recipient Email",
                 hintText: "Enter your email",
-                border: const OutlineInputBorder(),
                 labelStyle: textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.primary,
                 ),
