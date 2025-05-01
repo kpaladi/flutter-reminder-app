@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/reminder_model.dart';
@@ -8,7 +9,8 @@ Future<void> sendReminder({
   required Reminder reminder,
   String? phoneNumber,
 }) async {
-  final message = reminder.description;
+  final scheduleTime = DateFormat('hh:mm aaa, dd-MMM-yyyy').format(reminder.scheduledTime!);
+  final message = "Title: ${reminder.title}\nDescription: ${reminder.description}\nSchedule: $scheduleTime\nFrequency: ${reminder.repeatType}";
 
   final Map<String, String> queryParams = {
     'text': message, // No manual encoding needed here
