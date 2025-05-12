@@ -15,13 +15,13 @@ class ReminderProvider extends ChangeNotifier {
   Future<void> loadReminders() async {
     if (_isLoaded) return; // cache already loaded
 
-    _reminders = await repository.getAllReminders();
+    _reminders = await repository.getReminders();
     _isLoaded = true;
     notifyListeners();
   }
 
   void refresh() async {
-    _reminders = await repository.getAllReminders();
+    _reminders = await repository.getReminders();
     notifyListeners();
   }
 

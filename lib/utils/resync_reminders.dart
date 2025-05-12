@@ -6,7 +6,7 @@ import '../services/reminder_repository.dart';
 
 class ReminderHelper {
   static Future<int> resyncReminders(ReminderRepository repository) async {
-    final reminders = await repository.getAllReminders();
+    final reminders = await repository.getReminders();
     int resyncedCount = 0;
 
     for (var reminder in reminders) {

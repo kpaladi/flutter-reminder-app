@@ -18,11 +18,6 @@ class ReminderRepository extends ChangeNotifier {
     return snapshot.docs.map((doc) => Reminder.fromFirestore(doc)).toList();
   }
 
-  // Get all reminders for the current user (alias for getReminders)
-  Future<List<Reminder>> getAllReminders() async {
-    return getReminders();
-  }
-
   // Get a specific reminder by ID for the current user
   Future<Reminder?> getReminderById(String id) async {
     final doc = await _remindersRef.doc(id).get();

@@ -15,7 +15,7 @@ class ViewRemindersScreen extends StatelessWidget {
 
   Future<void> resyncReminders(BuildContext context) async {
     final repository = Provider.of<ReminderRepository>(context, listen: false);
-    final reminders = await repository.getAllReminders();
+    final reminders = await repository.getReminders();
 
     int resyncedCount = 0;
 

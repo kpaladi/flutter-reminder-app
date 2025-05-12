@@ -18,7 +18,7 @@ class ReminderExportFAB extends StatelessWidget {
   Future<void> _exportReminders(BuildContext context) async {
     try {
       // Fetch reminders using repository
-      final reminders = await repository.getAllReminders();
+      final reminders = await repository.getReminders();
 
       final rows = <List<String>>[
         ["Title", "Description", "Scheduled Time", "Repeat Type", "ID (do not change)"],

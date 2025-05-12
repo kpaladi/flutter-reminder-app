@@ -45,7 +45,7 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> cancelAllScheduledReminders() async {
-    final reminders = await widget.reminderRepository.getAllReminders();
+    final reminders = await widget.reminderRepository.getReminders();
 
     for (final reminder in reminders) {
       await NotificationService().cancelNotification(reminder.notificationId);
